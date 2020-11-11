@@ -1,0 +1,51 @@
+11: nrowu = 1
+10: locc = (1, 3, 5, 7)
+9: locr = (1, 4, 6, 8)
+8: lenc = (2, 2, 2, 3)
+7: lenr = (3, 2, 2, 2)
+6: q = (1, 2, 3, 4)
+5: p = (2, 3, 4, 1)
+4: indr(1:16) = (1, 2, 4, 2, 3, 3, 4, 1, 4, 0, 0, 0, 0, 0, 0, 0)
+3: indc(1:16) = (1, 4, 1, 2, 2, 3, 1, 3, 4, 0, 3, 1, 0, 0, 0, 0)
+2: a(1:16) = (1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0)
+Continuing.
+
+Breakpoint 2, lusol::lu1fad (m=4, n=4, nelem=9, lena=9996, luparm=..., parmlu=
+    ..., a=..., indc=..., indr=..., p=..., q=..., lenc=..., lenr=..., locc=
+    ..., locr=..., iploc=..., iqloc=..., ipinv=..., iqinv=..., w=..., lenh=4, 
+    ha=..., hj=..., hk=..., amaxr=..., inform=0, lenl=1, lenu=2, minlen=0, 
+    mersum=1, nutri=0, nltri=0, ndens1=0, ndens2=0, nrank=0, nslack=0, lmax=
+    1, umax=1, dumax=1, dumin=1, akmax=1)
+    at /global/home/users/oekenta/lusol.revised/src/lusol.f90:1207
+/global/home/users/oekenta/lusol.revised/src/lusol.f90:1207:53805:beg:0x2aaafcea3342
+11: nrowu = 2
+10: locc = (1, 3, 5, 7)
+9: locr = (1, 4, 6, 8)
+8: lenc = (-2, 2, 2, 1)
+7: lenr = (1, 2, 2, -2)
+6: q = (1, 4, 3, 2)
+5: p = (4, 1, 2, 3)
+4: indr(1:16) = (2, 0, 0, 2, 3, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+3: indc(1:16) = (0, 0, 1, 2, 2, 3, 3, 0, 0, 0, 3, 1, 0, 0, 0, 0)
+2: a(1:16) = (1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0)
+Continuing.
+
+Breakpoint 2, lusol::lu1fad (m=4, n=4, nelem=9, lena=9996, luparm=..., parmlu=
+    ..., a=..., indc=..., indr=..., p=..., q=..., lenc=..., lenr=..., locc=
+    ..., locr=..., iploc=..., iqloc=..., ipinv=..., iqinv=..., w=..., lenh=4, 
+    ha=..., hj=..., hk=..., amaxr=..., inform=0, lenl=1, lenu=4, minlen=0, 
+    mersum=1, nutri=0, nltri=0, ndens1=3, ndens2=0, nrank=0, nslack=0, lmax=
+    1, umax=1, dumax=1, dumin=1, akmax=1)
+    at /global/home/users/oekenta/lusol.revised/src/lusol.f90:1207
+/global/home/users/oekenta/lusol.revised/src/lusol.f90:1207:53805:beg:0x2aaafcea3342
+11: nrowu = 3
+10: locc = (1, 3, 5, 7)
+9: locr = (1, 4, 6, 8)
+8: lenc = (-2, 2, 1, -1)
+7: lenr = (1, 2, -2, -2)
+6: q = (1, 4, 3, 2)
+5: p = (4, 3, 1, 2)
+4: indr(1:16) = (2, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+3: indc(1:16) = (0, 0, 1, 2, 2, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0)
+2: a(1:16) = (1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0)
+Continuing.
