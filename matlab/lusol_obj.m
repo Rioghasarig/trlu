@@ -129,6 +129,8 @@ classdef lusol_obj < handle
     int_ptr_class = 'int64Ptr'; % integer class for libpointers
     
     A = [];
+    Minv = []; 
+    L = []; 
   end
 
   methods (Static)
@@ -375,11 +377,13 @@ classdef lusol_obj < handle
       % LUSOL operates on many arrays.  This method allocates all of them
       % to an appropriate size.
       %
-      obj.A = A; 
+      obj.A = A;
       % get information about A
       m = size(A,1);
       n = size(A,2);
       nelem = nnz(A);
+      obj.Minv = speye(m); 
+
       % set storage sizes
      
       nzmax = max([2*nelem 10*m 10*n 10000 obj.nzinit]);
@@ -723,6 +727,8 @@ classdef lusol_obj < handle
     
       obj.ap = obj.ap_ptr.Value;
       obj.aq = obj.aq_ptr.Value;
+      obj.L = obj.L0();
+
     end
 
     function [inform nsing depcol] = factorize(obj,A,varargin)
@@ -1357,11 +1363,12 @@ classdef lusol_obj < handle
       [X inform resid] = obj.solve(B,6);
     end
 
-    function [X inform] = solveL(obj,B)
+    function [X] = solveL(obj,B)
       %SOLVEL  solve L*X = B.
       %
       % See also: lusol.solve
-      [X inform] = obj.solve(B,1);
+      X = obj.Minv*( obj.L / B);
+
     end
 
     function [X inform] = solveLt(obj,B)
@@ -1544,14 +1551,14 @@ classdef lusol_obj < handle
       if nargin < 4 || isempty(beta)
         beta = 1.0;
       end
-
+      c =  obj.Minv*(obj.L \ v); 
       % check and process input vectors
-      v = lusol_obj.vector_process(v,m);
+      c = lusol_obj.vector_process(c,m);
       w = lusol_obj.vector_process(w,n);
 
       % prepare temporary libpointers
       beta_ptr = libpointer('doublePtr',beta);
-      v_ptr = libpointer('doublePtr',v);
+      c_ptr = libpointer('doublePtr',c);
       w_ptr = libpointer('doublePtr',w);
       ret_inform_ptr = libpointer(obj.int_ptr_class,0);
 
@@ -1560,7 +1567,7 @@ classdef lusol_obj < handle
         obj.m_ptr, ...
         obj.n_ptr, ...
         beta_ptr, ...
-        v_ptr, ...
+        c_ptr, ...
         w_ptr, ...
         obj.nzmax_ptr, ...
         obj.luparm_ptr, ...
@@ -1576,9 +1583,27 @@ classdef lusol_obj < handle
         obj.locr_ptr, ...
         ret_inform_ptr);
 
+      % Update M
+      lenl0 = obj.stats.lenL0;
+      lenl = obj.stats.lenL; 
+      lena = obj.nzmax_ptr.Value;
+      l1 = lena-lenl+1;
+      l2 = lena-lenl0;
+
+      indc = obj.indc_ptr.Value;
+      indr = obj.indr_ptr.Value;
+      a =obj.a_ptr.Value;
+      mi = zeros(l2-l1+1,1);
+      mj = zeros(l2-l1+1,1); 
+      ma = zeros(l2-l1+1,1);
+      
+      mi(1:end) = indc(l1:l2);
+      mj(1:end) = indr(l1:l2);
+      ma(1:end) = a(l1:l2); 
+      M1 = sparse(mi,mj,ma, m, m); 
+      obj.Minv = obj.Minv + M1*obj.Minv;
       % prepare function output
       inform = ret_inform_ptr.Value;
-      c = v_ptr.Value; 
     end
     
     function inform = luclear(obj, c)

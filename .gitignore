@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# These .nfs files that keep getting created for some reason 
+.nfs*

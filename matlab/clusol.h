@@ -173,7 +173,6 @@ void clu8dlr(
   int64_t* inform);
 
 void clu9mod(
-  int64_t* mode,
   int64_t* m,
   int64_t* n,
   double* beta,
