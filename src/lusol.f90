@@ -98,14 +98,13 @@ contains
   ! 20 Jan 2016: Current version of lusol1.f90.
   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-  subroutine lu1fac( m    , n    , nelem, lena , lens,                 &
+  subroutine lu1fac( m    , n    , nelem, lena , ap, aq,               &
                      frank, luparm, parmlu,                            &
                      a    , indc , indr , p    , q     ,               &
                      lenc , lenr , locc , locr ,                       &
-                     s    , sindc, slenc, slocc,                       &
                      iploc, iqloc, ipinv, iqinv, w     , inform )
 
-    integer(ip),   intent(in)    :: m, n, nelem, lena, lens, frank
+    integer(ip),   intent(in)    :: m, n, nelem, lena, frank
 
     integer(ip),   intent(inout) :: luparm(30)
     integer(ip),   intent(inout) :: indc(lena), indr(lena),            &
@@ -113,12 +112,11 @@ contains
                                     lenc(n)   , lenr(m)   ,            &
                                     iploc(n)  , iqloc(m)  ,            &
                                     ipinv(m)  , iqinv(n)  ,            &
-                                    locc(n)   , locr(m)   ,            &
-                                    sindc(lens)  , slenc(m)  ,            &
-                                    slocc(m)
-    real(rp),      intent(inout) :: parmlu(30), a(lena), w(n),s(lens)
+                                    locc(n)   , locr(m)                
+    
+    real(rp),      intent(inout) :: parmlu(30), a(lena), w(n)
 
-    integer(ip),   intent(out)   :: inform
+    integer(ip),   intent(out)   :: inform, ap(m), aq(n)
 
     !------------------------------------------------------------------
     ! lu1fac computes a factorization A = L*U, where A is a sparse
@@ -400,9 +398,9 @@ contains
     !  luparm(14) = maxlen   ?
     !  luparm(15) = nupdat   No. of updates performed by the lu8 routines.
     !  luparm(16) = nrank    No. of nonempty rows of U.
-    !  luparm(17) = ndens1   No. of columns remaining when the density of
-    !                        the matrix being factorized reached dens1.
-    !  luparm(18) = ndens2   No. of columns remaining when the density of
+    !  luparm(17) = nrank1   
+    !   
+    !  
     !                        the matrix being factorized reached dens2.
     !  luparm(19) = jumin    The column index associated with DUmin.
     !  luparm(20) = numL0    No. of columns in initial  L.
@@ -447,7 +445,8 @@ contains
                               lu, mersum, minlen, nbump,               &
                               ncp, ndens1, ndens2,                     &
                               nLtri, nmove, nout, nrank,               &
-                              nsing, numl0, numnz, nslack, nUtri
+                              nsing, numl0, numnz, nslack, nUtri,      &
+                              lenr2(m), locr2(m)
     logical                :: keepLU, TCP, TPP, TRP, TSP
     real(rp)               :: Agrwth, Akmax, Amax, avgmer,             &
                               condU, delem, densty, dincr,             &
@@ -584,11 +583,10 @@ contains
        lmaxr  = 1             ! Dummy
     end if
 
-    call lu1fad( m     , n     , numnz , lena2 , lens,                 &
+    call lu1fad( m     , n     , numnz , lena2 ,                       &
                  frank, luparm, parmlu,                                &
                  a     , indc  , indr  , p     , q     ,               &
-                 lenc  , lenr  , locc  , locr  ,                       &
-                 s     , sindc , slenc , slocc ,                       & 
+                 lenc  , lenr  , locc  , locr  ,                       & 
                  iploc , iqloc , ipinv , iqinv , w     ,               &
                  lenH  ,a(locH), indc(locH), indr(locH), a(lmaxr),     &
                  inform, lenL  , lenU  , minlen, mersum,               &
@@ -684,37 +682,50 @@ contains
        end do
     end do
     lenU0 = lenU
-    ! Append the Schur complement to U
+    lrow  = lenU
     lu = lu + 1
     do k = nrank+1,m
         i = p(k)
-        lenUk = lenr(i)
+        lenr(i) = 0
         locr(i) = lu
-        lu = lu + lenUk
-        lenU = lenU + lenUk
     end do
-    lrow = lenU
-    do k = nrank+1, n
-        i = q(k)
-        lm = slocc(i)
-        l2 = lm + slenc(i) - 1
-        do l = lm,l2
-           a(locr(indc(l))) = s(l)
-           indr(locr(indc(l))) = i 
-           locr(indc(l)) = locr(indc(l)) +  1
+
+    !---------------------------------------------------------------
+    ! Permute rows and columns of U and L
+    !---------------------------------------------------------------
+    lenr2 = lenr;
+    locr2 = locr; 
+
+    do k = 1,m
+        i = p(k);
+        lenr(k) = lenr2(i);
+        locr(k) = locr2(i); 
+        ll = locr(k);
+        lm = locr(k) + lenr(k) -1;
+        do l = ll,lm
+            indr(l) = iqinv(indr(l))
         end do
-
-    end do 
-    do k = nrank+1,m
-        i = p(k)
-        locr(i) = locr(i) - lenr(i)
     end do
 
+    do l = lena-lenL+1,lena
+        indr(l) = ipinv(indr(l));
+        indc(l) = ipinv(indc(l)); 
+    end do
+    
+    do i = 1,m
+        ap(i) = p(i)
+        p(i) = i
+    end do
+
+    do i = 1,n
+        aq(i) = q(i)
+        q(i) = i
+    end do
     !---------------------------------------------------------------
-    ! Save the lengths of the nonempty columns of  L,
-    ! and initialize  locc(j)  for the LU update routines.
+    ! Save the lengths of the nonempty columns of L,  
+    ! and Initialize  locc(j)  for the LU update routines.
     !---------------------------------------------------------------
-    lenc(1:numl0) = iqloc(1:numl0)
+    lenc(1:numl0) = iqloc(1:numl0); 
     locc(1:n)     = 0
 
     !---------------------------------------------------------------
@@ -772,8 +783,8 @@ contains
     luparm(13) = minlen
     luparm(15) = 0
     luparm(16) = nrank
-    luparm(17) = ndens1
-    luparm(18) = ndens2
+    luparm(17) = nrank
+    luparm(18) = 0
     luparm(19) = jumin
     luparm(20) = numl0
     luparm(21) = lenL
@@ -862,31 +873,28 @@ contains
 
   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-  subroutine lu1fad( m     , n     , nelem , lena  , lens,             &
+  subroutine lu1fad( m     , n     , nelem , lena  ,                   &
                      frank,  luparm, parmlu,                           &
                      a     , indc  , indr  , p     , q     ,           &
                      lenc  , lenr  , locc  , locr  ,                   &
-                     s     , sindc , slenc , slocc ,                   &
                      iploc , iqloc , ipinv , iqinv , w     ,           &
                      lenH  , Ha    , Hj    , Hk    , Amaxr ,           &
                      inform, lenL  , lenU  , minlen, mersum,           &
                      nUtri , nLtri , ndens1, ndens2, nrank , nslack,   &
                      Lmax  , Umax  , DUmax , DUmin , Akmax )
 
-    integer(ip),   intent(in)    :: m, n, nelem, lena, lens, lenH,     &
+    integer(ip),   intent(in)    :: m, n, nelem, lena,       lenH,     &
                                     nslack, frank 
     integer(ip),   intent(inout) :: luparm(30)
     real(rp),      intent(inout) :: parmlu(30), a(lena), Amaxr(m),     &
-                                    w(n), Ha(lenH), s(lens)
+                                    w(n), Ha(lenH)
     integer(ip),   intent(inout) :: indc(lena), indr(lena),            &
                                     p(m)    , q(n)    ,                &
                                     lenc(n)   , lenr(m)   ,            &
                                     locc(n) , locr(m) ,                &
                                     iploc(n)  , iqloc(m)  ,            &
                                     ipinv(m), iqinv(n),                &
-                                    Hj(lenH)  , Hk(lenH),              &
-                                    sindc(lens), slenc(m),             &
-                                    slocc(m)
+                                    Hj(lenH)  , Hk(lenH) 
     integer(ip),   intent(out)   :: inform, lenL  , lenU  ,            &
                                     minlen, mersum,     &
                                     nUtri , nLtri , ndens1, ndens2, nrank
@@ -1864,19 +1872,6 @@ contains
     call lu1pq3( n, lenc, q, iqinv, mrank )
 
     
-    !------------------------------------------------------------------
-    ! Save the Schur complement
-    !------------------------------------------------------------------
-    if (lcol > lens) then
-       go to 982
-    end if
-    s(1:lcol) = a(1:lcol)
-    sindc(1:lcol) = indc(1:lcol)
-    do k = nrank+1,n
-       i = q(k)
-       slenc(i) = lenc(i)
-       slocc(i) = locc(i)
-    end do
 
     go to 990
 

@@ -7,10 +7,11 @@
     clu8adr;
     clu8dlc;
     clu8dlr;
-    clu8mod;
+    clu9mod;
     clu8rpc;
     clu8rpr;
     clu9rpc;
+    clu9clr;
   local:
     *;
 };

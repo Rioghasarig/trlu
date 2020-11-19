@@ -8,7 +8,8 @@ void clu1fac(
   int64_t* n,
   int64_t* nelem,
   int64_t* lena,
-  int64_t* lens,
+  int64_t* ap,
+  int64_t* aq, 
   int64_t* frank,
   int64_t* luparm,
   double* parmlu,
@@ -21,10 +22,6 @@ void clu1fac(
   int64_t* lenr,
   int64_t* locc,
   int64_t* locr,
-  double* s, 
-  int64_t* sindc,
-  int64_t* slenc, 
-  int64_t* slocc, 
   int64_t* iploc,
   int64_t* iqloc,
   int64_t* ipinv,
@@ -175,8 +172,7 @@ void clu8dlr(
   int64_t* locr,
   int64_t* inform);
 
-void clu8mod(
-  int64_t* mode,
+void clu9mod(
   int64_t* m,
   int64_t* n,
   double* beta,
@@ -241,5 +237,22 @@ void clu9rpc(
   int64_t* locc,
   int64_t* locr,
   int64_t* inform);
+
+void clu9clr(
+  int64_t* m,
+  int64_t* n,
+  int64_t* lena,
+  int64_t* luparm,
+  double* parmlu,
+  double* a,
+  int64_t* indc,
+  int64_t* indr, 
+  int64_t* p, 
+  int64_t* q, 
+  int64_t* lenr,
+  int64_t* locc,
+  int64_t* locr,
+  double* c, 
+  int64_t* inform); 
 
 #endif // CLUSOL_H_

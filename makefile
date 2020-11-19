@@ -19,7 +19,7 @@ else
 endif
 
 # Fortran optimization level
-FOPT := -O3
+FOPT := -O0
 
 # Fortran compilers
 ifneq ($(DARWIN),)
@@ -28,14 +28,14 @@ ifneq ($(DARWIN),)
   F90FLAGS := -m64 -fPIC -Jsrc $(FOPT)
   # Fortran 77 compiler
   F77C := gfortran
-  F77FLAGS := -m64 -fPIC -fdefault-integer-8 $(FOPT)
+  F77FLAGS := -m64 -fPIC -fdefault-integer-8 -g $(FOPT)
 else
   # Fortran 90 compiler
   F90C := gfortran
   F90FLAGS :=  -m64 -fPIC -Jsrc  $(FOPT)
   # Fortran 77 compiler
   F77C := gfortran
-  F77FLAGS := -m64 -fPIC -fdefault-integer-8  $(FOPT)
+  F77FLAGS := -m64 -fPIC -fdefault-integer-8 -g $(FOPT)
 endif
 
 # Matlab
@@ -108,7 +108,8 @@ F77_FILES := \
   src/lusol_util.f \
   src/lusol6b.f \
   src/lusol7b.f \
-  src/lusol8b.f
+  src/lusol8b.f \
+  src/lusol9.f
 
 F77_OBJ := $(patsubst %.f,%.o,$(filter %.f,$(F77_FILES)))
 

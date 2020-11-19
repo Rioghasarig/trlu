@@ -95,52 +95,40 @@ classdef lusol_obj < handle
     nelem_ptr = 0; % number of elements in original matrix
     nzmax_ptr = 0; % maximum storage allocated
     rank_ptr = 0; % rank of the factorization 
-    lens_ptr = 0;
     % vectors of lenth nzmax
 
     a_ptr = 0; % main storage array
     indc_ptr = 0; % row indices
     indr_ptr = 0; % column indices
 
-    s_ptr = 0;
-    sindc_ptr = 0;
     % vectors of length m
 
     p_ptr = 0; % row permutation
-
+    ap_ptr = 0;
     lenr_ptr = 0;
     locr_ptr = 0;
     
-    slenc_ptr = 0;
-    slocc_ptr = 0;
 
     iqloc_ptr = 0;
     ipinv_ptr = 0;
-
+    ap = []
     % vectors of length n
 
     q_ptr = 0; % column permutation
+    aq_ptr = 0; 
     lenc_ptr = 0;
     locc_ptr = 0;
+    
     iploc_ptr = 0;
     iqinv_ptr = 0;
-
+    aq = [];
     % other
 
     depcol_lx = 0; % logical index indicating dependent columns
     int_class = 'int64'; % integer class used for integer arrays
     int_ptr_class = 'int64Ptr'; % integer class for libpointers
     
-    lfile = [];
-    lenl = 0;
-    U = [];
-    p = [];
-    q = [];
-    L = []; 
-    Lnrank = [];
-    A = []; 
-    nrank = 0; 
-    nrank1 = 0;
+    A = [];
   end
 
   methods (Static)
@@ -395,15 +383,12 @@ classdef lusol_obj < handle
       % set storage sizes
      
       nzmax = max([2*nelem 10*m 10*n 10000 obj.nzinit]);
-      lens = 1*nzmax;
       rank_ = max(obj.rank, 1); 
       % vectors of length nzmax
       a = zeros(nzmax,1);
       indc = zeros(nzmax,1,obj.int_class);
       indr = zeros(nzmax,1,obj.int_class);
       
-      s = zeros(nzmax,1);
-      sindc = zeros(nzmax,1,obj.int_class);
 
       % extract data from A for use in LUSOL
       [indc_tmp indr_tmp a_tmp] = find(A);
@@ -412,19 +397,21 @@ classdef lusol_obj < handle
       a(1:nelem) = a_tmp;
       % vectors of length m
       p = zeros(m,1);
-      
+      ap = zeros(m,1); 
+
       lenr = zeros(m,1);
       locr = zeros(m,1);
       
-      slenc = zeros(m,1);
-      slocc = zeros(m,1);
 
       iqloc = zeros(m,1);
       ipinv = zeros(m,1);
       % vectors of length n
       q = zeros(n,1);
+      aq  = zeros(n,1); 
+
       lenc = zeros(n,1);
       locc = zeros(n,1);
+      
       iploc = zeros(n,1);
       iqinv = zeros(n,1);
 
@@ -434,30 +421,29 @@ classdef lusol_obj < handle
       obj.n_ptr = libpointer(obj.int_ptr_class,n);
       obj.nelem_ptr = libpointer(obj.int_ptr_class,nelem);
       obj.nzmax_ptr = libpointer(obj.int_ptr_class,nzmax);
-      obj.lens_ptr  = libpointer(obj.int_ptr_class, lens); 
       obj.rank_ptr = libpointer(obj.int_ptr_class, rank_); 
       % vectors of length nzmax
       obj.a_ptr = libpointer('doublePtr',a);
       obj.indc_ptr = libpointer(obj.int_ptr_class,indc);
       obj.indr_ptr = libpointer(obj.int_ptr_class,indr);
 
-      obj.s_ptr = libpointer('doublePtr', s);
-      obj.sindc_ptr = libpointer(obj.int_ptr_class, sindc);
       % vectors of length m
       obj.p_ptr = libpointer(obj.int_ptr_class,p);
+      obj.ap_ptr = libpointer(obj.int_ptr_class,ap); 
       
       obj.lenr_ptr = libpointer(obj.int_ptr_class,lenr);
       obj.locr_ptr = libpointer(obj.int_ptr_class,locr);
       
-      obj.slenc_ptr = libpointer(obj.int_ptr_class, slenc);
-      obj.slocc_ptr = libpointer(obj.int_ptr_class, slocc);
 
       obj.iqloc_ptr = libpointer(obj.int_ptr_class,iqloc);
       obj.ipinv_ptr = libpointer(obj.int_ptr_class,ipinv);
       % vectors of length n
       obj.q_ptr = libpointer(obj.int_ptr_class,q);
+      obj.aq_ptr = libpointer(obj.int_ptr_class,aq); 
+
       obj.lenc_ptr = libpointer(obj.int_ptr_class,lenc);
       obj.locc_ptr = libpointer(obj.int_ptr_class,locc);
+      
       obj.iploc_ptr = libpointer(obj.int_ptr_class,iploc);
       obj.iqinv_ptr = libpointer(obj.int_ptr_class,iqinv);
 
@@ -734,7 +720,9 @@ classdef lusol_obj < handle
 
       % factorize the matrix
       obj.factorize(A,varargin{:});
-      obj.extract_data(); 
+    
+      obj.ap = obj.ap_ptr.Value;
+      obj.aq = obj.aq_ptr.Value;
     end
 
     function [inform nsing depcol] = factorize(obj,A,varargin)
@@ -794,7 +782,8 @@ classdef lusol_obj < handle
         obj.n_ptr, ...
         obj.nelem_ptr, ...
         obj.nzmax_ptr, ...
-        obj.lens_ptr, ...
+        obj.ap_ptr, ...
+        obj.aq_ptr, ...
         obj.rank_ptr, ...
         obj.luparm_ptr, ...
         obj.parmlu_ptr, ...
@@ -807,10 +796,6 @@ classdef lusol_obj < handle
         obj.lenr_ptr, ...
         obj.locc_ptr, ...
         obj.locr_ptr, ...
-        obj.s_ptr, ...
-        obj.sindc_ptr,...
-        obj.slenc_ptr, ...
-        obj.slocc_ptr, ...
         obj.iploc_ptr, ...
         obj.iqloc_ptr, ...
         obj.ipinv_ptr, ...
@@ -942,7 +927,7 @@ classdef lusol_obj < handle
       s.maxlen = luparm(14);
       s.nupdat = luparm(15);
       s.nrank = luparm(16);
-      s.ndens1 = luparm(17);
+      s.nrank1 = luparm(17);
       s.ndens2 = luparm(18);
       s.jumin = luparm(19);
       s.numL0 = luparm(20);
@@ -1016,13 +1001,13 @@ classdef lusol_obj < handle
       d = obj.depcol_lx;
     end
 
-    function ip = p0(obj)
+    function ip = p(obj)
       %P  return row permutation vector
       m = double(obj.m_ptr.Value);
       ip = double(obj.p_ptr.Value(1:m));
     end
 
-    function iq = q0(obj)
+    function iq = q(obj)
       %Q  return column permutation vector
       n = double(obj.n_ptr.Value);
       iq = double(obj.q_ptr.Value(1:n));
@@ -1030,7 +1015,7 @@ classdef lusol_obj < handle
 
     % methods to get the matrix factors
 
-    function [U p q] = U0(obj,pm_opt)
+    function [U] = U(obj)
       %U  get the upper triangular factor U
       %
       % Extract the U factor from LUSOL data and return as a Matlab sparse
@@ -1070,16 +1055,8 @@ classdef lusol_obj < handle
       % instead of vectors
       matrflg = false;
       % handle optional function input
-      if nargout == 3
-        permflg = true;
-      end
-      if nargin >= 2 && strcmpi(pm_opt,'matrix')
-        matrflg = true;
-      end
       % get basic matrix information
       [m n] = obj.size();
-      p = obj.p0();
-      q = obj.q0();
       s = obj.stats();
       % initialize arrays for U triplets
       ui = zeros(s.lenU0,1,'double');
@@ -1093,18 +1070,18 @@ classdef lusol_obj < handle
       % array position pointers
       k1 = 1;
       k2 = 1;
+      p = obj.p; 
       % loop through (rows?)
-      for i = 1:s.nrank
-        % get row index
-        piv = p(i);
+      for k = 1:s.nrank1
         % get length of row
-        len = double(lenr(piv));
+        i = p(k); 
+        len = double(lenr(i));
         % get location of row
-        loc = double(locr(piv));
+        loc = double(locr(i));
         % set end pointer
         k2 = k1+len-1;
         % load data into triplet arrays
-        ui(k1:k2) = piv*ones(len,1);
+        ui(k1:k2) = i*ones(len,1);
         uj(k1:k2) = double(indr(loc:loc+len-1));
         ua(k1:k2) = double(a(loc:loc+len-1));
         % increment row start pointer
@@ -1112,50 +1089,8 @@ classdef lusol_obj < handle
       end
       % generate sparse matrix
       U = sparse(ui,uj,ua,m,n);
-      % handle optional permutation of U
-      if permflg
-        % produce and return upper triangular U
-        U = U(p,q);
-      end
-      % handle optional generation of permutation matrices
-      if matrflg
-        % construct and return sparse permutation matrices
-        p = sparse((1:m)',p,1,m,m);
-        q = sparse(q,(1:n)',1,n,n);
-      end
     end
-    function [S] = S0(obj)
-
-        nrank = obj.stats.nrank; 
-        [m n] = obj.size(); 
-        s = obj.s_ptr.value;
-        sindc = obj.sindc_ptr.value;
-        slenc = obj.slenc_ptr.value;                
-        slocc = obj.slocc_ptr.value; 
-        slen = sum(slenc);
-
-
-        si = zeros(slen,1);
-        sj = zeros(slen,1);
-        sv = zeros(slen, 1); 
-         
-        l = 1; 
-        q = obj.q;
-        for k = nrank+1:n
-            i = q(k); 
-            if slenc(i) > 0
-                leni = slenc(i);
-                sj(l:l+leni-1) = i;
-                
-                sloc = slocc(i); 
-                si(l:l+leni-1) = sindc(sloc:sloc+leni-1);
-                sv(l:l+leni-1) = s(sloc:sloc+leni-1);
-                l = l + leni;
-            end
-        end
-        S = sparse(si,sj,sv,m,n);        
-    end
-    function [L0 p] = L0(obj,pm_opt)
+    function [L0] = L0(obj)
       %L0  get the initial lower triangular factor L0
       %
       % Extracts the initial lower triangular factor from the LUSOL data
@@ -1192,20 +1127,8 @@ classdef lusol_obj < handle
 
       % permutation flag, set true if user desires upper triangular U and
       % permutation vectors
-      permflg = false;
-      % matrix flag, set true if user desires sparse permutation matrices
-      % instead of vectors
-      matrflg = false;
-      % handle function options
-      if nargout == 2
-        permflg = true;
-      end
-      if nargin >= 2 && strcmpi(pm_opt,'matrix')
-        matrflg = true;
-      end
       % obtain information from object
       [m n] = obj.size();
-      p = obj.p0();
       s = obj.stats();
       lena = double(obj.nzmax_ptr.Value);
       % get matrix data
@@ -1226,315 +1149,35 @@ classdef lusol_obj < handle
       la(s.lenL0+1:end) = ones(m,1);
       % create matlab sparse matrix
       L0 = sparse(li,lj,la);
-      % handle optional permutation
-      if permflg
-        % produce and return lower triangular L0
-        L0 = L0(p,p);
-      end
-      % handle optional conversion of permuation vector to matrix
-      if matrflg
-        % construct and return sparse permutation matrix
-        p = sparse((1:m)',p,1);
-      end
-    end
-    function [lfile,lenl, US,P,Q] = extract_data(obj)
-      % obtain information from object
-      [m n] = obj.size();
-      p = obj.p0();
-      q = obj.q0(); 
-      s = obj.stats();
-      obj.nrank = s.nrank; 
-      obj.nrank1 = s.nrank; 
- %     obj.lfile  = zeros(3,10000);
-%      obj.lenl = s.lenL0; 
-      lena = double(obj.nzmax_ptr.Value);
-      % get matrix data
-      a = obj.a_ptr.Value;
-      indc = obj.indc_ptr.Value;
-      indr = obj.indr_ptr.Value;
-      
-      ipinv = obj.ipinv_ptr.value;
-      iqinv = obj.iqinv_ptr.value;
-%      for i = 1:s.lenL0
-        % val, row, col
-%        obj.lfile(:,i) = [ipinv(indc(lena-i+1)), ipinv(indr(lena-i+1)), a(lena-i+1)];
-%      end
-
-      obj.U = obj.U0();
-
-      obj.U = obj.U(p,q);
-      obj.L = obj.L0();
-      obj.L = obj.L(p,p);  
-      obj.p = p;
-      obj.q = q; 
     end
   
-    
-    function [c] =  Lelm(obj, c)
-        % Updates L to eliminate the bottom entries of c and updates nrank1
-        % All but one of the entries of c(nrank1+1:end) will be eliminated
-        % The rows will be permuted so that the last remaining entry appears at position nrank1+1
-        
-        [m, ~]  = obj.size();
-        nrank1 = obj.nrank1; 
-        c(find(abs(c) < obj.small)) = 0; 
-
-        [max_val,k] = max(abs(c(nrank1+1:end)));
-      
-        if max_val > 0
-            % Perform Permutations. 
-            P2 = [k, 1:k-1, k+1:m-nrank1]+nrank1; 
-            obj.L(nrank1+1:end,:) = obj.L(P2,:);
-            obj.L(:,nrank1+1:end) = obj.L(:,P2); 
-            %obj.U(nrank1+1:end, :) = obj.U(P2,:);
-            obj.p(nrank1+1:end) = obj.p(P2); 
-            c(nrank1+1:end) = c(P2); 
-            
-            k = nrank1+1;
-            ck = c(k); 
-            is = find(c(nrank1+2:end))+nrank1+1; 
-            lelm_len = length(is);
-            js = repelem(k, 1,lelm_len); 
-            vs = -(c(is)/c(k))';
-            Lelm = sparse(is, js, vs, m, m);  
-            
-            %obj.US = obj.US + Lelm*obj.US;
-            obj.L = obj.L - obj.L* Lelm; 
-        end
-        
-        if nrank1 < m
-            obj.nrank1 = obj.nrank1 + 1; 
-        end
-       
-    end
-    
-    function colmod(obj, j, v)
-        [~,n] =obj.size();
-        w = zeros(n,1);
-        w(j) = 1;
-        obj.lur1mod(v,w);     
-    end
-    
-    function  rowmod(obj,i,w)
-        [m,~] = obj.size(); 
-        v = zeros(m,1);
-        v(i) = 1;         
-        obj.lur1mod(v,w); 
-        
-    end
-    
-    function  lur1mod(obj, v,w)
-        % Applies a rank 1 modification to the LU factorization. Ignoring
-        % permutations, we change L -> L' , U -> U' so that A  = L*U
-        % becomes A' = L'U' where A'  = A + vw^T
-
-        [m, n] = obj.size();
-        nrank = obj.nrank; 
-        c = obj.L \ v;
-        
-        % Eliminate the bottom entries of c 
-        c  = obj.Lelm(c);
-        nrank1 = obj.nrank1;        
-
-        % Add cw^T to U
-        obj.U(1:nrank,:) = obj.U(1:nrank,:) + c(1:nrank)*w';
-        obj.U(nrank+1:nrank1,1:nrank) = obj.U(nrank+1:nrank1,1:nrank) +  c(nrank+1:nrank1)*w(1:nrank)'; 
-
-     end
-    
-    function  refactor(obj)
-        nrank = obj.stats.nrank;
-
-        U11 = obj.U(1:nrank,1:nrank); 
-        [Lnew, U, P1,Q1] = lu(U11,1, 'vector');
-
-        obj.L = permuteMat(obj.L, P1, P1); 
-        obj.U = permuteMat(obj.U, P1, Q1); 
-        obj.p(1:nrank) = obj.p(P1); 
-        obj.q(1:nrank) = obj.q(Q1); 
-        obj.L(:, 1:nrank) = obj.L(:,1:nrank)*Lnew;
-        obj.U(1:nrank,1:nrank) = U; 
-        obj.U(1:nrank,nrank+1:end) = Lnew\obj.U(1:nrank, nrank+1:end); 
-        
-
-    end    
-    
-    function Lclear(obj)
-        % Eliminate a  row below the diagonal.   
-        [m,~] = obj.size();
-        nrank = obj.nrank; 
-        nrank1 = obj.nrank1; 
-        U11 = obj.U(1:nrank,1:nrank); 
-        diagU = obj.diagU; 
-        if min(abs(diagU)) <= 10^-10
-            error('Singular U matrix')
-        end
-        for i =nrank+1:nrank1
-            w = obj.U(i,1:nrank); 
-            xsol = w / U11; 
-            is = repelem(i,1,nrank); 
-            js = 1:nrank; 
-            Lclear = sparse(is,js,xsol, m,m); 
-            %obj.U = obj.U - Lclear*obj.U; 
-            obj.L = obj.L + obj.L*Lclear; 
-        end
-        % Clear extra rows of U
-        obj.U(nrank+1:nrank1,1:nrank) = 0;
-        % Clear extra columns of L
-        obj.L(nrank+1:end,nrank+1:nrank1) = speye(m-nrank,nrank1-nrank); 
-        obj.nrank1 = obj.nrank; 
-    end
-    function reprow(obj, i, w)
-        [m,~] = obj.size();
-        if any(size(w) ~= [m,1])
-            error('w is incorrect shape. Must be m x 1');
-        end
-        r = obj.A(i,:)'; 
-        obj.rowmod(i, w-r); 
-        %obj.A(i,:) = w';
-        
-    end
-    
-    function repcol(obj, j, v)
-        [~,n] = obj.size();
-        if any(size(v) ~= [n,1])
-            error('v is incorrect shape. Must be n x 1'); 
-        end
-        c = obj.A(:,j); 
-        obj.colmod(j, v-c); 
-        %obj.A(:,j) = v;    
-    end
-    function [m21, i1, i2] = max21(obj)
-        %Estimates the maximum of A21*A11^-1
-       [m, ~] = obj.size();
-       nrank = obj.stats.nrank;
-
-       A21 = obj.A(obj.p(nrank+1:end),obj.q(1:nrank)); 
-       Omega = randn(20,m-nrank); 
-       L11 = obj.L(1:nrank,1:nrank);
-       U11 = obj.U(1:nrank,1:nrank); 
-       B = ((Omega*A21)/ U11)/L11; 
-       [~,i1] = max(sqrt(sum(B.^2)));
-       
-       e = zeros(nrank,1); 
-       e(i1) = 1; 
-       v = (U11\(L11\e));
-       u = A21*v; 
-       [m21,i2_] = max(abs(u)); 
-       i2 = i2_ + nrank; 
-    end
-    
-    function [m12, j1, j2] = max12(obj)
-        nrank = obj.stats.nrank;
-        A12 = obj.A(obj.p(1:nrank),obj.q(nrank+1:end));    
-        Omega = randn(20,nrank); 
-
-        L11 = obj.L(1:nrank,1:nrank);
-        U11 = obj.U(1:nrank,1:nrank);  
-        
-        B = ((Omega /U11)/ L11)*A12; 
-        [~,j2_] = max(sqrt(sum(B.^2))); 
-        v = A12(:,j2_); 
-        u = (U11\(L11 \ v)); 
-        [m12,j1] = max(abs(u)); 
-        j2  = j2_ + nrank; 
-    end
-
-    function [alpha, s_r, s_c] = maxS(obj)
-        % Estimates the maximum of he Schur complement. 
-        [m,~] = obj.size(); 
-        nrank = obj.stats.nrank; 
-       Omega = randn(20, m-nrank); 
-       A22 = obj.A(obj.p(nrank+1:end),obj.q(nrank+1:end));
-       L12 = obj.L(nrank+1:end,1:nrank);
-       U12 = obj.U(1:nrank,nrank+1:end); 
-       S  = Omega*A22 - Omega*L12*U12; 
-       
-       [~,s_c] = max(sqrt(sum(S.^2)));
-       max_col = A22(:,s_c) - L12*U12(:,s_c); 
-       [alpha,s_r] = max(abs(max_col));
-    end
-    
-    function [beta, a_r, a_c] = maxA11inv(obj, s_r, s_c)
-        %   Estimates the maximum of A11^-1 where A11.
-        %   If k is the rank of the factorization A11 is the (k+1) x (k+1)
-        %   matrix conisting of rows [1:k, k+s_r] and columns [1:k,k+s_c]
-        %   of the matrix PAQ = LU. 
-        %   That is.  A11 = obj.A(obj.p([1:nrank,nrank+s_r]) , obj.q([1:nrank,nrank+s_c]));   
-        
-        %  Returns
-        %  beta - estimated maximum
-        %  a_r   - column (NOT row) index of estimated maximum
-        % a_c    - row (NOT column) index of the estimated maximum 
-        nrank = obj.stats.nrank;
-
-        
-      %% Compute the LU factorization of A11
-        % Caluclates a L11 and upper-trianguar U1 such that A11 = L11*U11
-        % --NOTE---: After updates L11 may not necessarily be upper-triangular. 
-        % Modifications are required to ensure this method is computed efficiently. 
-        
-        L11 = obj.L([1:nrank, nrank+s_r], [1:nrank, nrank+s_r]); 
-        U11 = obj.U([1:nrank, nrank+s_r], [1:nrank, nrank+s_c]);
-
-        l21 = obj.L(nrank+s_r,nrank+1:end);
-        
-        % Calculate column s_c of S
-        A22 = obj.A(obj.p(nrank+1:end),obj.q(nrank+1:end));
-        L21 = obj.L(nrank+1:end,1:nrank);
-        U12 = obj.U(1:nrank,nrank+1:end); 
-        
-        s =  A22(:,s_c) - L21*U12(:,s_c);     
-        x = s(s_r);
-        
-        if abs(x) <= obj.small
-            error('Singular U11');
-        end
-        L11(nrank+1,nrank+1) = 1;
-        U11(nrank+1,nrank+1) = x; 
-        
-         A11 = obj.A(obj.p([1:nrank,nrank+s_r]) , obj.q([1:nrank,nrank+s_c]));   
-         if max(max(abs(A11-L11*U11))) > 10^-10
-              blah = 1;
-         end
-       %% Estimate the max of A11^-1
-        Omega = randn(20,nrank+1); 
-        B = ((Omega/U11)/L11);
-        [~,a_r] = max(sqrt(sum(B.^2)));
-        max_col = zeros(nrank+1,1);
-        max_col(a_r,1) = 1;
-        col_invA11 = (U11\(L11\max_col));
-        [beta,a_c] = max(abs(col_invA11)); 
-    end
-    function swapRows(obj, i1,i2)
+    function [inform, c] = swapRows(obj, i1,i2)
         [m, ~] = obj.size();
         %% Get Rows i1 and i2 of A(p,q) and find their difference
-        r1 = obj.A(obj.p(i1),:)';
-        r2 = obj.A(obj.p(i2),:)'; 
-        w = r2(obj.q) -r1(obj.q); 
-        
+        r1 = obj.A(obj.ap(i1),:)';
+        r2 = obj.A(obj.ap(i2),:)'; 
+        w = r2(obj.aq) - r1(obj.aq); 
+        p = obj.p; 
         v = zeros(m,1); 
         v(i1) = 1;
         v(i2) = -1; 
-        
-        obj.p([i1 i2]) = obj.p([i2 i1]); 
-        obj.lur1mod(v,w); 
-        
-        
+        obj.ap([i1 i2]) =  obj.ap([i2 i1]); 
+        [inform, c] = obj.r1mod(v,w); 
+          
     end
     
-     function swapCols(obj, j1,j2)
+     function [inform, c] = swapCols(obj, j1,j2)
          [~, n] = obj.size(); 
-        c1 = obj.A(:,obj.q(j1));
-        c2 = obj.A(:,obj.q(j2)); 
-        v = c2(obj.p) - c1(obj.p); 
+        c1 = obj.A(:,obj.aq(j1));
+        c2 = obj.A(:,obj.aq(j2)); 
+        v = c2(obj.ap) - c1(obj.ap); 
         
         w = zeros(n,1);
         w(j1) = 1;
         w(j2) = -1; 
         
-        obj.q([j1 j2]) = obj.q([j2 j1]); 
-        obj.lur1mod(v,w); 
+        obj.aq([j1 j2]) = obj.aq([j2 j1]); 
+        [inform, c] = obj.r1mod(v,w); 
 
      end
     
@@ -1542,80 +1185,73 @@ classdef lusol_obj < handle
         nrank = obj.stats.nrank; 
         
         if a_r ~= nrank+1
-            obj.swapRows(a_r, nrank+s_r);
+            [inform1, c1] = obj.swapRows(a_r, nrank+s_r);
         end
         
         if a_c ~=nrank+1
-            obj.swapCols(a_c, nrank+s_c); 
+            [inform2, c2] = obj.swapCols(a_c, nrank+s_c); 
         end
         
-        obj.refactor(); 
-        obj.Lclear(); 
+        % Clear extra rows
+        if a_c ~=nrank+1
+            inform = obj.luclear(c2);
+            switch inform
+                case 0
+                    
+                case 7
+                    err = MException('lusol:luclear',...
+                                     'Not enough space in the row file'); 
+                    throw(err);                   
+                case 8
+                    err = MException('lusol:luclear',...
+                                     'Singular U11');
+                    throw(err);   
+                otherwise
+                    err = MException('lusol:luclear',...
+                                     'Unrecognized error code');
+                    throw(err);
+            end
+                    
+        end
+        
+        if a_r ~= nrank+1
+            inform = obj.luclear(c1);
+            switch inform
+                case 0
+                    
+                case 7
+                    err = MException('lusol:luclear',...
+                                     'Not enough space in the row file'); 
+                    throw(err);                   
+                case 8
+                    err = MException('lusol:luclear',...
+                                     'Singular U11');
+                    throw(err);   
+                otherwise
+                    err = MException('lusol:luclear',...
+                                     'Unrecognized error code');
+                    throw(err);
+            end 
+        end
+    
     end
 
-    function [err] = facerror(obj)
-        % Computes the maximum of the error | PAQ - LU| on the 
-        % first nrank rows and columns. 
-        
-        E11 = abs(obj.A11 - obj.L11*obj.U11); 
-        E12 = abs(obj.A12 - obj.L11*obj.U12); 
-        E21 = abs(obj.A21 - obj.L21*obj.U11);
-        e11 = full(max(max(abs(E11))));
-        e12 = full(max(max(abs(E12))));
-        e21 = full(max(max(abs(E21)))); 
-        err = max([e11,e12,e21]); 
-    end
-    
-    function [A21] = A21(obj)
-        nrank = obj.stats.nrank;
-        A21 = obj.A(obj.p(nrank+1:end),obj.q(1:nrank)); 
-    end
-    
-    function [A12] = A12(obj)
-        nrank = obj.stats.nrank;
-        A12 = obj.A(obj.p(1:nrank),obj.q(nrank+1:end)); 
-    end
-    
-    function [A11] = A11(obj)
-        nrank = obj.stats.nrank;
-        A11 = obj.A(obj.p(1:nrank),obj.q(1:nrank)); 
-    end
-    function [U11] = U11(obj)
-        nrank = obj.stats.nrank;
-        U11 = obj.U(1:nrank,1:nrank);
-    end
-    
-    function [U12] = U12(obj)
-        nrank = obj.stats.nrank;
-        U12 = obj.U(1:nrank,nrank+1:end); 
-    end
-    
-    function [L11] = L11(obj)
-        nrank = obj.stats.nrank;
-        L11 = obj.L(1:nrank,1:nrank); 
-    end
-    
-    function [L21] = L21(obj)
-        nrank = obj.stats.nrank;
-        L21 = obj.L(nrank+1:end,1:nrank);
-    end
-    function[L22] = L22(obj)
-        nrank = obj.stats.nrank;
-        L22 = obj.L(nrank+1:end,nrank+1:end);
-    end
-    function [S] = S(obj)
-        nrank = obj.stats.nrank; 
-        A22 = obj.A(obj.p(nrank+1:end),obj.q(nrank+1:end));
-        L12 = obj.L(nrank+1:end,1:nrank);
-        U12 = obj.U(1:nrank,nrank+1:end); 
-        S  = A22 - L12*U12; 
-    end
-    function [diagU] = diagU(obj)
-        [m n] = obj.size(); 
-        nrank = obj.stats.nrank;
-        diagU = obj.U(sub2ind([m n], 1:nrank, 1:nrank));
-    end
-    
+
+      function [alpha, s_r, s_c] = maxS(obj)
+       % Estimates the maximum of he Schur complement. 
+       [m,~] = obj.size(); 
+       nrank = obj.stats.nrank; 
+       Omega = randn(20, m-nrank); 
+       Omega = [zeros(20, 5), Omega]; 
+       
+       A22 = obj.A(obj.ap(nrank+1:end),obj.aq(nrank+1:end));
+       oL21 = obj.mulL
+       S  = Omega*A22 - Omega*L21*U12; 
+       
+       [~,s_c] = max(sqrt(sum(S.^2)));
+       max_col = A22(:,s_c) - L21*U12(:,s_c); 
+       [alpha,s_r] = max(abs(max_col));
+    end  
 
     % solve methods
 
@@ -1880,7 +1516,7 @@ classdef lusol_obj < handle
 
   
 
-    function inform = r1mod(obj,v,w,beta)
+    function [inform,c] = r1mod(obj,v,w,beta)
       %R1MOD  update LU factorization to perform rank-1 update A+beta*v*w'
       %
       % Usage:
@@ -1914,15 +1550,13 @@ classdef lusol_obj < handle
       w = lusol_obj.vector_process(w,n);
 
       % prepare temporary libpointers
-      mode_ptr = libpointer(obj.int_ptr_class,1);
       beta_ptr = libpointer('doublePtr',beta);
       v_ptr = libpointer('doublePtr',v);
       w_ptr = libpointer('doublePtr',w);
       ret_inform_ptr = libpointer(obj.int_ptr_class,0);
 
       % call library function
-      calllib('libclusol','clu8mod', ...
-        mode_ptr, ...
+      calllib('libclusol','clu9mod', ...
         obj.m_ptr, ...
         obj.n_ptr, ...
         beta_ptr, ...
@@ -1944,9 +1578,33 @@ classdef lusol_obj < handle
 
       % prepare function output
       inform = ret_inform_ptr.Value;
-
+      c = v_ptr.Value; 
     end
+    
+    function inform = luclear(obj, c)
+      [m,~] = obj.size();
+      ret_inform_ptr = libpointer(obj.int_ptr_class,0);
+      c = lusol_obj.vector_process(c, m); 
+      c_ptr = libpointer('doublePtr', c); 
+      calllib('libclusol', 'clu9clr', ...
+        obj.m_ptr, ...
+        obj.n_ptr, ...
+        obj.nzmax_ptr, ...
+        obj.luparm_ptr, ...
+        obj.parmlu_ptr, ...
+        obj.a_ptr, ...
+        obj.indc_ptr, ...
+        obj.indr_ptr, ...
+        obj.p_ptr, ...
+        obj.q_ptr, ...
+        obj.lenr_ptr, ...
+        obj.locc_ptr, ...
+        obj.locr_ptr, ...
+        c_ptr, ...
+        ret_inform_ptr); 
 
+        inform = ret_inform_ptr.Value; 
+    end
     % inherited, not implemented methods
 
     function TF = eq(obj,x)

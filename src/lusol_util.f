@@ -5803,7 +5803,6 @@
          if (lenv      .eq.   0   ) go to 150
          if (indr(lv1) .ne. jfirst) go to 150
          vj     = a(lv1)
-         if (klast .gt. nrank)      go to 200
          if (            swappd               ) go to 200
          if (Ltol * abs( wj )  .lt.  abs( vj )) go to 200
          if (Ltol * abs( vj )  .lt.  abs( wj )) go to 150
