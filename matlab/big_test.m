@@ -25,8 +25,10 @@ for k = 1:1
     fprintf('Matrix: %s\n', baseFileName);
     load(fullFileName);
     A = Problem.A; 
+    A = gallery('dramadah',10); 
     [m, n] = size(A);
     nrank = round(m/10);
+    nrank = 5;
 
 
     matsize(k) = m;
@@ -57,7 +59,7 @@ for k = 1:1
     for i = 1:swaps
         
         [alpha, s_r, s_c] = mylu.maxS(); 
-        [beta, a_r, a_c] = mylu.maxA11inv(s_r, s_c); 
+        [beta, a_r, a_c] = mylu.maxA11inv(alpha,s_r, s_c); 
 
         if alpha*beta < 2
            break
