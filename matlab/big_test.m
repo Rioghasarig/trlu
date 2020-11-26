@@ -79,7 +79,7 @@ for k = 1:1
     title(baseFileName, 'Interpreter', 'none');
     saveas(gcf, join(['figs/',baseFileName, '.fig']));
     
-    diagU = mylu.U(sub2ind([m n], 1:nrank, 1:nrank));
+    diagU = mylu.diagU();
     Ucond(k) =max(abs(diagU))/min(abs(diagU));   
     fprintf('Ucond: %d\n', Ucond(k)); 
     Unnz(k) = nnz(mylu.U(1:nrank,:));
