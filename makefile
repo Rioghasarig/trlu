@@ -25,14 +25,14 @@ FOPT := -O0
 ifneq ($(DARWIN),)
   # Fortran 90 compiler
   F90C := gfortran
-  F90FLAGS := -m64 -fPIC -Jsrc $(FOPT)
+  F90FLAGS := -m64 -fPIC -Jsrc -g $(FOPT)
   # Fortran 77 compiler
   F77C := gfortran
   F77FLAGS := -m64 -fPIC -fdefault-integer-8 -g $(FOPT)
 else
   # Fortran 90 compiler
   F90C := gfortran
-  F90FLAGS :=  -m64 -fPIC -Jsrc  $(FOPT)
+  F90FLAGS :=  -m64 -fPIC -Jsrc -g $(FOPT)
   # Fortran 77 compiler
   F77C := gfortran
   F77FLAGS := -m64 -fPIC -fdefault-integer-8 -g $(FOPT)

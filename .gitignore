@@ -33,3 +33,4 @@
 
 # These .nfs files that keep getting created for some reason 
 .nfs*
+matlab/libclusol_proto_glnxa64.m

@@ -693,6 +693,16 @@ contains
     !---------------------------------------------------------------
     ! Permute rows and columns of U and L
     !---------------------------------------------------------------
+    
+    ! Fix the ipinv and iqinv
+    do k=1,m
+        ipinv(p(k)) = k
+    end do
+
+    do k=1,n
+        iqinv(q(k)) = k
+    end do
+
     lenr2 = lenr;
     locr2 = locr; 
 

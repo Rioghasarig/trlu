@@ -25,10 +25,9 @@ for k = 1:1
     fprintf('Matrix: %s\n', baseFileName);
     load(fullFileName);
     A = Problem.A; 
-    A = gallery('dramadah',10); 
     [m, n] = size(A);
     nrank = round(m/10);
-    nrank = 5;
+
 
 
     matsize(k) = m;
