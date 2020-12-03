@@ -63,49 +63,12 @@ for k = 1:1
     end
     fprintf('Factorization Time: %.5f\n', factime(k));
 
-
     try
-        tic; 
-        rng(5);    
-        for i = 1:swaps
 
-            [alpha, s_r, s_c] = mylu.maxS(); 
-            [beta, a_r, a_c] = mylu.maxA11inv(alpha,s_r, s_c); 
-
-            if abs(alpha*beta) < 5
-               break
-            end
-            mylu.swapFac(a_r,a_c,s_r,s_c); 
-            nswaps(k) = nswaps(k) + 1; 
-        end
-    catch e
-        fprintf('Error during swaps: %s', e.message);
-        continue
-    end
-    
-    try
-        swaptime(k) = toc; 
-        fprintf('Number of Swaps: %d\n', nswaps(k));
-        mylu.U = mylu.getU(); 
-        detA11(k,2) = sum(log10(abs(mylu.diagU))); 
-        fprintf('Det A11 diff: %.5f\n', detA11(k,2) - detA11(k,1)); 
-        enorm = mylu.facerror(); 
-        swaperror(k) = enorm;
-        fprintf('Swap Error: %.15f\n', enorm); 
-        fprintf('Swap Time: %.5f\n', swaptime(k));
-      
-        diagU = mylu.diagU();
-        Ucond(k,2) =max(abs(diagU))/min(abs(diagU));   
-        fprintf('Ucond2: %d\n', Ucond(k,2)); 
-        Unnz(k) = nnz(mylu.U); 
-        fprintf('Unnz: %d\n', Unnz(k)); 
-        Lnnz(k) = mylu.stats.lenL; 
-        fprintf('Lnnz: %d\n', Lnnz(k)); 
-        T = table(matname, matsize, matnnz, facrank,factime, facerror,nswaps,...
-                        swaptime,swaperror, Ucond(:,1),Ucond(:,2), Unnz,Lnnz,...
-                        'VariableNames', {'Name', 'Size', 'Matnnz', 'Rank','FacTime', 'FacError', 'NumSwaps', ...
-                       'SwapTime','SwapError','Ucond1','Ucond2','Unnz', 'Lnnz'});
-        writetable(T, 'results.csv'); 
+ 
+        T = table(matname, matsize, matnnz, facrank,factime,...
+                        'VariableNames', {'Name', 'Size', 'Matnnz', 'Rank','FacTime'});
+        writetable(T, 'fac_time.csv'); 
     catch e
         fprintf('Error in post-swap process: %s', e.message);
         continue

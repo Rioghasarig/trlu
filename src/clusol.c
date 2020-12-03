@@ -241,15 +241,11 @@ void lu9clr_(
   int64_t* m,
   int64_t* n,
   int64_t* lena,
-  int64_t* lsize,
   int64_t* luparm,
   double* parmlu,
   double* a,
   int64_t* indc,
   int64_t* indr,
-  double* lv,
-  int64_t* li,
-  int64_t* lj,
   int64_t* p,
   int64_t* q,
   int64_t* lenr,
@@ -450,23 +446,18 @@ void clu9mod(
   double* v,
   double* w,
   int64_t* lena,
-  int64_t* lsize,
   int64_t* luparm,
   double* parmlu,
   double* a,
   int64_t* indc,
   int64_t* indr,
-  double* lv,
-  int64_t* li,
-  int64_t* lj,
   int64_t* p,
   int64_t* q,
-  int64_t* lenc,
   int64_t* lenr,
   int64_t* locc,
   int64_t* locr,
   int64_t* inform) {
-  lu9mod_(m,n,beta,v,w,lena,lsize, luparm,parmlu,a,indc,indr,lv, li,lj, p,q,lenc,lenr,locc,locr,inform);
+  lu9mod_(m,n,beta,v,w,lena,luparm,parmlu,a,indc,indr,p,q,lenr,locc,locr,inform);
 }
 
 void clu8rpr(
@@ -523,15 +514,11 @@ void clu9clr(
   int64_t* m,
   int64_t* n,
   int64_t* lena,
-  int64_t* lsize,
   int64_t* luparm,
   double* parmlu,
   double* a,
   int64_t* indc,
   int64_t* indr,
-  double* lv,
-  int64_t* li,
-  int64_t* lj,
   int64_t* p,
   int64_t* q,
   int64_t* lenr,
@@ -539,5 +526,5 @@ void clu9clr(
   int64_t* locr, 
   double* c, 
   int64_t* inform) {
-  lu9clr_(m, n, lena, lsize, luparm, parmlu, a, indc, indr, lv, li, lj, p, q, lenr, locc, locr, c, inform); 
+  lu9clr_(m, n, lena, luparm, parmlu, a, indc, indr, p, q, lenr, locc, locr, c, inform); 
 }
