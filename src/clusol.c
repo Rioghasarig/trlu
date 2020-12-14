@@ -71,6 +71,16 @@ void __lusol_MOD_lu8rpc(
   double* diag,
   double* vnorm);
 
+void __lusol_MOD_lu1or2(
+  int64_t* n, 
+  int64_t* numa,
+  int64_t* lena,
+  double* a, 
+  int64_t* inum,
+  int64_t* jnum,
+  int64_t* lenc,
+  int64_t* locc);
+
 void lu6mul_(
   int64_t* mode,
   int64_t* m,
@@ -253,6 +263,66 @@ void lu9clr_(
   int64_t* locr, 
   double* c, 
   int64_t* inform); 
+
+void lu9maxs_(
+  int64_t* m,
+  int64_t* n,
+  int64_t* nrank,
+  int64_t* lenlu,
+  int64_t* luparm,
+  double* parmlu,
+  double* lua,
+  int64_t* luindc,
+  int64_t* luindr,
+  int64_t* lup,
+  int64_t* luq,
+  int64_t* lulenc,
+  int64_t* lulenr,
+  int64_t* lulocc,
+  int64_t* lulocr,
+  int64_t* annz,
+  double* av,
+  int64_t* ai,
+  int64_t* aj,
+  double* u,
+  double* uS,
+  double* v,
+  double* w,
+  int64_t* s_r,
+  int64_t* s_c, 
+  double* alpha
+  );
+
+void lu9swp_(
+  int64_t* m,
+  int64_t* n,
+  int64_t* a_r,
+  int64_t* a_c,
+  int64_t* s_r,
+  int64_t* s_c,
+  int64_t* annz,
+  double* av,
+  int64_t* ai,
+  int64_t* aj,
+  double* v1,
+  double* v2,
+  double* w,
+  int64_t* lena,
+  int64_t* luparm,
+  double* parmlu,
+  double* a,
+  int64_t* indc,
+  int64_t* indr,
+  int64_t* ip,
+  int64_t* iq,
+  int64_t* ap, 
+  int64_t* aq, 
+  int64_t* lenc,
+  int64_t* lenr,
+  int64_t* locc,
+  int64_t* locr,
+  int64_t* inform);
+
 // c interface function definitions
 void clu1fac(
   int64_t* m,
@@ -328,6 +398,18 @@ void clu8rpc(
   double* diag,
   double* vnorm) {
   __lusol_MOD_lu8rpc(mode1,mode2,m,n,jrep,v,w,lena,luparm,parmlu,a,indc,indr,p,q,lenc,lenr,locc,locr,inform,diag,vnorm);
+}
+
+void clu1or2(
+  int64_t* n, 
+  int64_t* numa,
+  int64_t* lena,
+  double* a, 
+  int64_t* inum,
+  int64_t* jnum,
+  int64_t* lenc,
+  int64_t* locc) {
+  __lusol_MOD_lu1or2(n,numa,lena,a,inum,jnum,lenc,locc);
 }
 
 void clu6mul(
@@ -453,11 +535,12 @@ void clu9mod(
   int64_t* indr,
   int64_t* p,
   int64_t* q,
+  int64_t* lenc,
   int64_t* lenr,
   int64_t* locc,
   int64_t* locr,
   int64_t* inform) {
-  lu9mod_(m,n,beta,v,w,lena,luparm,parmlu,a,indc,indr,p,q,lenr,locc,locr,inform);
+  lu9mod_(m,n,beta,v,w,lena,luparm,parmlu,a,indc,indr,p,q,lenc,lenr,locc,locr,inform);
 }
 
 void clu8rpr(
@@ -528,3 +611,69 @@ void clu9clr(
   int64_t* inform) {
   lu9clr_(m, n, lena, luparm, parmlu, a, indc, indr, p, q, lenr, locc, locr, c, inform); 
 }
+
+
+void clu9maxs(
+  int64_t* m,
+  int64_t* n,
+  int64_t* nrank,
+  int64_t* lenlu,
+  int64_t* luparm,
+  double* parmlu,
+  double* lua,
+  int64_t* luindc,
+  int64_t* luindr,
+  int64_t* lup,
+  int64_t* luq,
+  int64_t* lulenc,
+  int64_t* lulenr,
+  int64_t* lulocc,
+  int64_t* lulocr,
+  int64_t* annz,
+  double* av,
+  int64_t* ai,
+  int64_t* aj,
+  double* u,
+  double* uS,
+  double* v,
+  double* w,
+  int64_t* s_r,
+  int64_t* s_c, 
+  double* alpha
+  ) {
+  lu9maxs_(m, n, nrank, lenlu, luparm, parmlu, lua, luindc, luindr, lup, luq, lulenc, lulenr, lulocc, lulocr, annz, av, ai, aj, u, uS, v, w, s_r, s_c, alpha);
+}
+
+void clu9swp(
+  int64_t* m,
+  int64_t* n,
+  int64_t* a_r,
+  int64_t* a_c,
+  int64_t* s_r,
+  int64_t* s_c,
+  int64_t* annz,
+  double* av,
+  int64_t* ai,
+  int64_t* aj,
+  double* v1,
+  double* v2,
+  double* w,
+  int64_t* lena,
+  int64_t* luparm,
+  double* parmlu,
+  double* a,
+  int64_t* indc,
+  int64_t* indr,
+  int64_t* ip,
+  int64_t* iq,
+  int64_t* ap, 
+  int64_t* aq, 
+  int64_t* lenc,
+  int64_t* lenr,
+  int64_t* locc,
+  int64_t* locr,
+  int64_t* inform){
+    lu9swp_(m,n,a_r,a_c,s_r,s_c,annz,av,ai,aj,v1,v2,w,lena,luparm,parmlu,a,indc,indr,ip,iq,ap,aq,lenc,lenr,locc,locr,inform);
+  }
+
+

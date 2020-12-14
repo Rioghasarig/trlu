@@ -14,7 +14,7 @@ ifneq ($(DARWIN),)
 else
   # C compiler for linux
   CC := gcc
-  CPPFLAGS :=
+  CPPFLAGS := -g
   CFLAGS := -m64 -fPIC
 endif
 

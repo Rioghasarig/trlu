@@ -123,11 +123,14 @@ classdef lusol_obj < handle
     iqinv_ptr = 0;
     aq = [];
     % other
-    lv_ptr = 0;
-    li_ptr = 0;
-    lj_ptr = 0;
-    lsize_ptr = 0;
-
+    u_ptr = 0;
+    uS_ptr = 0; 
+    
+    av_ptr = 0;
+    ai_ptr = 0; 
+    aj_ptr = 0; 
+    annz_ptr = 0; 
+    
     depcol_lx = 0; % logical index indicating dependent columns
     int_class = 'int64'; % integer class used for integer arrays
     int_ptr_class = 'int64Ptr'; % integer class for libpointers
@@ -136,6 +139,7 @@ classdef lusol_obj < handle
     Minv = []; 
     L = []; 
     U = [];
+
   end
 
   methods (Static)
@@ -392,16 +396,12 @@ classdef lusol_obj < handle
       % set storage sizes
      
       nzmax = max([2*nelem 10*m 10*n 10000 obj.nzinit]);
-      lsize = 3*m;
       rank_ = max(obj.rank, 1); 
       % vectors of length nzmax
       a = zeros(nzmax,1);
       indc = zeros(nzmax,1,obj.int_class);
       indr = zeros(nzmax,1,obj.int_class);
       
-      lv = zeros(lsize,1);
-      li = zeros(lsize,1, obj.int_class);
-      lj = zeros(lsize,1,obj.int_class); 
       % extract data from A for use in LUSOL
       [indc_tmp indr_tmp a_tmp] = find(A);
       indc(1:nelem) = cast(indc_tmp,obj.int_class);
@@ -428,23 +428,23 @@ classdef lusol_obj < handle
       iqinv = zeros(n,1);
 
 
-     
+      
+      omega = zeros(20,m-rank_);
+      uS = zeros(20, n-rank_); 
+      
+
       %-- allocate and initialize libpointer "arrays" --%
       % integer scalars
       obj.m_ptr = libpointer(obj.int_ptr_class,m);
       obj.n_ptr = libpointer(obj.int_ptr_class,n);
       obj.nelem_ptr = libpointer(obj.int_ptr_class,nelem);
       obj.nzmax_ptr = libpointer(obj.int_ptr_class,nzmax);
-      obj.lsize_ptr = libpointer(obj.int_ptr_class,lsize); 
       obj.rank_ptr = libpointer(obj.int_ptr_class, rank_); 
       % vectors of length nzmax
       obj.a_ptr = libpointer('doublePtr',a);
       obj.indc_ptr = libpointer(obj.int_ptr_class,indc);
       obj.indr_ptr = libpointer(obj.int_ptr_class,indr);
 
-      obj.lv_ptr = libpointer('doublePtr', lv);
-      obj.li_ptr = libpointer(obj.int_ptr_class, li);
-      obj.lj_ptr = libpointer(obj.int_ptr_class, lj); 
 
       % vectors of length m
       obj.p_ptr = libpointer(obj.int_ptr_class,p);
@@ -465,6 +465,11 @@ classdef lusol_obj < handle
       
       obj.iploc_ptr = libpointer(obj.int_ptr_class,iploc);
       obj.iqinv_ptr = libpointer(obj.int_ptr_class,iqinv);
+
+      obj.u_ptr = libpointer('doublePtr', omega); 
+      obj.uS_ptr = libpointer('doublePtr', uS); 
+      
+
 
     end
 
@@ -743,6 +748,16 @@ classdef lusol_obj < handle
       obj.ap = obj.ap_ptr.Value;
       obj.aq = obj.aq_ptr.Value;
       obj.L = obj.L0();
+      
+            
+      [ai,aj,av] = find(A(obj.ap,obj.aq)); 
+      annz = size(av,1); 
+     
+      
+      obj.av_ptr = libpointer('doublePtr', av);
+      obj.ai_ptr = libpointer(obj.int_ptr_class, ai);
+      obj.aj_ptr = libpointer(obj.int_ptr_class, aj); 
+      obj.annz_ptr = libpointer(obj.int_ptr_class, annz); 
 
     end
 
@@ -1172,7 +1187,7 @@ classdef lusol_obj < handle
       % create matlab sparse matrix
       L0 = sparse(li,lj,la);
     end
-  
+    
     function [inform, c] = swapRows(obj, i1,i2)
         [m, ~] = obj.size();
         %% Get Rows i1 and i2 of A(p,q) and find their difference
@@ -1184,11 +1199,12 @@ classdef lusol_obj < handle
         v(i1) = 1;
         v(i2) = -1; 
         obj.ap([i1 i2]) =  obj.ap([i2 i1]); 
+
         [inform, c] = obj.r1mod(v,w); 
           
     end
     
-     function [inform, c] = swapCols(obj, j1,j2)
+    function [inform, c] = swapCols(obj, j1,j2)
          [~, n] = obj.size(); 
         c1 = obj.A(:,obj.aq(j1));
         c2 = obj.A(:,obj.aq(j2)); 
@@ -1201,9 +1217,56 @@ classdef lusol_obj < handle
         obj.aq([j1 j2]) = obj.aq([j2 j1]); 
         [inform, c] = obj.r1mod(v,w); 
 
-     end
+    end
     
     function swapFac(obj, a_r, a_c, s_r, s_c)
+        [m,n] = obj.size; 
+        
+        ar_ptr = libpointer(obj.int_ptr_class, a_r);
+        ac_ptr = libpointer(obj.int_ptr_class, a_c);
+        sr_ptr = libpointer(obj.int_ptr_class, s_r);
+        sc_ptr = libpointer(obj.int_ptr_class, s_c); 
+        
+        v1 = zeros(m,1);
+        v2 = zeros(m,1); 
+        w = zeros(n,1); 
+        
+        v1_ptr = libpointer('doublePtr', v1);
+        v2_ptr = libpointer('doublePtr', v2);
+        w_ptr = libpointer('doublePtr', w); 
+        
+        inform_ptr = libpointer(obj.int_ptr_class, 0); 
+        calllib('libclusol', 'clu9swp', ...
+            obj.m_ptr,...
+            obj.n_ptr,...
+            ar_ptr,...
+            ac_ptr,...
+            sr_ptr,...
+            sc_ptr,...
+            obj.annz_ptr,...
+            obj.av_ptr,...
+            obj.ai_ptr,...
+            obj.aj_ptr,...
+            v1_ptr,...
+            v2_ptr,...
+            w_ptr,...
+            obj.nzmax_ptr,...
+            obj.luparm_ptr,...
+            obj.parmlu_ptr,...
+            obj.a_ptr,...
+            obj.indc_ptr,...
+            obj.indr_ptr,...
+            obj.p_ptr,...
+            obj.q_ptr,...
+            obj.ap_ptr,...
+            obj.aq_ptr,...
+            obj.lenc_ptr,...
+            obj.lenr_ptr,...
+            obj.locc_ptr,...
+            obj.locr_ptr,...
+            inform_ptr); 
+    end
+    function swapFacOld(obj, a_r, a_c, s_r, s_c)
         nrank = obj.stats.nrank; 
         if a_r ~= nrank+1
             [inform1, c1] = obj.swapRows(a_r, nrank+s_r);
@@ -1264,21 +1327,57 @@ classdef lusol_obj < handle
        nrank = obj.stats.nrank; 
 
        Omega = randn(20, m-nrank); 
-   
 
-       A22 = obj.A(obj.ap(nrank+1:end),obj.aq(nrank+1:end)); 
+       ai = double(obj.ai_ptr.Value);
+       aj = double(obj.aj_ptr.Value);
+       av = obj.av_ptr.Value;
+       A_ = sparse(ai,aj,av, m, n); 
+       A22 = A_(nrank+1:end,nrank+1:end); 
+  
+       S = Omega*A22; 
 
-       OL = obj.mulL21t(Omega')';
-       OLU = obj.mulU12t(OL')'; 
-       S  = Omega*A22 - OLU;       
-       [~,s_c] = max(sqrt(sum(S.^2)));
-
-       e = zeros(n-nrank,1);
-       e(s_c)= 1; 
-       Us = obj.mulU12(e); 
-       max_col = A22(:,s_c) - obj.mulL21(Us); 
-       [~,s_r] = max(abs(max_col));
-       alpha = max_col(s_r); 
+       obj.u_ptr.Value = Omega; 
+       obj.uS_ptr.Value = S; 
+       nrank_ptr = libpointer(obj.int_ptr_class,nrank);
+        
+       v = zeros(m,1);
+       w = zeros(n,1); 
+       v_ptr = libpointer('doublePtr', v); 
+       w_ptr = libpointer('doublePtr', w); 
+       sr_ptr = libpointer(obj.int_ptr_class, 0);
+       sc_ptr = libpointer(obj.int_ptr_class, 0); 
+       alpha_ptr = libpointer('doublePtr', 0); 
+        
+       calllib('libclusol', 'clu9maxs',...
+          obj.m_ptr,...
+          obj.n_ptr,...
+          nrank_ptr, ...
+          obj.nzmax_ptr,...
+          obj.luparm_ptr,...
+          obj.parmlu_ptr,...
+          obj.a_ptr, ...
+          obj.indc_ptr,...
+          obj.indr_ptr,...
+          obj.p_ptr,...
+          obj.q_ptr,...
+          obj.lenc_ptr,...
+          obj.lenr_ptr,...
+          obj.locc_ptr,...
+          obj.locr_ptr,...
+          obj.annz_ptr,...
+          obj.av_ptr,...
+          obj.ai_ptr,...
+          obj.aj_ptr,...
+          obj.u_ptr,...
+          obj.uS_ptr,...
+          v_ptr,...
+          w_ptr,...
+          sr_ptr,...
+          sc_ptr,...
+          alpha_ptr);
+        s_r = sr_ptr.Value;
+        s_c = sc_ptr.Value;
+        alpha = alpha_ptr.Value; 
     end
    
     
@@ -1335,7 +1434,12 @@ classdef lusol_obj < handle
         nrank = obj.stats.nrank;
         y = randn(nrank, 1); 
         x = obj.solveU11(obj.solveL11(y));
-        err = max(abs(obj.A(obj.ap(1:nrank),obj.aq(1:nrank))*x - y ));
+        
+        ai = double(obj.ai_ptr.Value);
+        aj = double(obj.aj_ptr.Value);
+        av = obj.av_ptr.Value;
+        Apq = sparse(ai,aj,av); 
+        err = max(abs(Apq(1:nrank,1:nrank)*x - y ));
     end
     
     function [err] = facerror12(obj)

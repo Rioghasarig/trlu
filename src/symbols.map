@@ -12,6 +12,9 @@
     clu8rpr;
     clu9rpc;
     clu9clr;
+    clu1or2;
+    clu9maxs;
+    clu9swp;
   local:
     *;
 };

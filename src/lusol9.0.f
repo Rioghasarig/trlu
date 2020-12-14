@@ -2,7 +2,7 @@
      $                   lena,luparm, parmlu,
      $                   a, indc, indr, 
      $                   ip, iq,
-     $                   lenc,lenr, locc, locr,
+     $                   lenr, locc, locr,
      $                   inform )
 
       implicit           double precision (a-h,o-z)
@@ -11,7 +11,7 @@
       integer            luparm(30)
       double precision   parmlu(30), a(lena)
       integer            indc(lena), indr(lena), ip(m), iq(n)
-      integer            lenr(m), lenc(n)
+      integer            lenr(m)
       integer            locc(n), locr(m)
       logical            singlr
 
@@ -652,7 +652,7 @@
      $                   lena,luparm, parmlu,
      $                   a, indc, indr, 
      $                   ip, iq, ap, aq, 
-     $                   lenc, lenr, locc, locr,
+     $                   lenr, locc, locr,
      $                   inform )
 
       integer            m, n, a_r, a_c, s_r, s_c
@@ -660,11 +660,11 @@
       integer            luparm(30)
       double precision   parmlu(30),a(lena)
       integer            ip(m), iq(n), ap(m), aq(n)
-      integer            lenr(m), lenc(n)
-      integer            indc(lena),indr(lena)
+      integer            lenr(m), indc(lena),indr(lena)
       integer            locc(n), locr(m)
       double precision   av(annz), v1(m), v2(m), w(n)
-      integer            ai(annz), aj(annz), nrank              
+      integer            ai(annz), aj(annz) 
+              
       integer t
       double precision beta
       nrank = luparm(16)
@@ -676,96 +676,7 @@
                w(t) = av(k)
             end if
          end do
-
-         do k=1,annz
-            if (ai(k) .eq. a_r) then
-               t = aj(k)
-               w(t) = w(t) - av(k)
-            end if
-         end do
-
-         do k =1,annz
-            if (ai(k) .eq. nrank+s_r) then
-               ai(k) = a_r
-            else if (ai(k) .eq. a_r) then
-               ai(k) = nrank+s_r
-            end if
-         end do
-         ! Apply the rank one update
-         v1(1:m) = 0
-         v1(a_r) = 1
-         v1(nrank+s_r) = -1 
-         beta = 1.0
-         call  lu9mod( m, n, beta, v1, w,lena,luparm, 
-     $                 parmlu, a, indc, indr, ip, iq,
-     $                 lenc, lenr, locc, locr,inform )
-         if( inform .eq. 7) go to 970
-         ! Modify ap permutation
-800      t = ap(a_r)
-         ap(a_r) = ap(nrank+s_r)
-         ap(nrank+s_r) = t 
       end if
-      if (a_c .le.  nrank) then
-         ! Compute v = A(:,j2) - A(:,j1)
-         do k = 1,annz
-            if(aj(k) .eq. nrank+s_c) then
-               t = ai(k)
-               v2(t) = av(k)
-            end if
-         end do
-
-         do k = 1,annz
-            if(aj(k) .eq. a_c) then
-               t = ai(k)
-               v2(t) = v2(t) - av(k)
-            end if
-         end do
-
-         do k = 1,annz
-            if (aj(k) .eq. a_c) then
-               aj(k) = nrank+s_c
-            else if (aj(k) .eq. nrank+s_c) then
-               aj(k) = a_c
-            end if
-         end do
-         w(1:n) = 0.0
-         w(a_c) = 1.0
-         w(nrank+s_c) = -1.0
-         beta =  1.0
-         call  lu9mod( m, n, beta, v2, w,lena,luparm, 
-     $                 parmlu, a, indc, indr, ip, iq,
-     $                 lenc,lenr, locc, locr,inform )
-         if(inform .eq. 7) go to 970
-
-         ! Modify aq permutation
-810      t = aq(a_c)
-         aq(a_c) = aq(nrank+s_c)
-         aq(nrank+s_c) = aq(a_c)
-         go to 990
-      end if
-     
-      if (a_c .le. nrank) then
-         call lu9clr( m, n, lena, luparm, parmlu, 
-     $                a, indc, indr, ip, iq, lenr, 
-     $                locc, locr,v2, inform)
-         if (inform .eq. 7) go to 970
-         if (inform .eq. 8) go to 980
-      end if
-      
-      if (a_r .le. nrank) then
-         call lu9clr( m, n, lena, luparm, parmlu, 
-     $                a, indc, indr, ip, iq, lenr, 
-     $                locc, locr, v1, inform)
-         if (inform .eq. 7) go to 970
-         if (inform .eq. 8) go to 980
-      end if
-      go to 990
-      ! Not enough storage
-970   inform = 7
-
-      ! Singular U11 
-980   inform = 8
-
 990   return 
       end
 
