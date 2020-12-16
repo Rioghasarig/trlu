@@ -9,7 +9,7 @@ DARWIN := $(strip $(findstring darwin, $(OSLOWER)))
 ifneq ($(DARWIN),)
   # C compiler for osx
   CC := clang
-  CPPFLAGS :=
+  CPPFLAGS :=  
   CFLAGS := -arch x86_64 -fPIC
 else
   # C compiler for linux
@@ -25,10 +25,10 @@ FOPT := -O0
 ifneq ($(DARWIN),)
   # Fortran 90 compiler
   F90C := gfortran
-  F90FLAGS := -m64 -fPIC -Jsrc -g $(FOPT)
+  F90FLAGS := -m64 -fPIC -Jsrc  $(FOPT)
   # Fortran 77 compiler
   F77C := gfortran
-  F77FLAGS := -m64 -fPIC -fdefault-integer-8 -g $(FOPT)
+  F77FLAGS := -m64 -fPIC -fdefault-integer-8  $(FOPT)
 else
   # Fortran 90 compiler
   F90C := gfortran

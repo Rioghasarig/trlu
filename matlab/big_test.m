@@ -14,11 +14,12 @@ nswaps = zeros(nmat,1);
 swaperror = -1*ones(nmat,1);
 swaptime = zeros(nmat,1); 
 Ucond = zeros(nmat,2); 
-swaps = 20; 
+swaps = 2; 
 Unnz = zeros(nmat,1);
 Lnnz = zeros(nmat, 1); 
 detA11 = zeros(nmat,swaps+1); 
-for k = 1:5
+
+for k = 13:13
     baseFileName = matFiles(k).name;
     nameLen = min(10, length(baseFileName));
     matname(k) = baseFileName(1:nameLen);

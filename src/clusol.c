@@ -305,8 +305,11 @@ void lu9swp_(
   int64_t* ai,
   int64_t* aj,
   double* v1,
+  double* c1,
+  double* w1,
   double* v2,
-  double* w,
+  double* c2, 
+  double* w2,
   int64_t* lena,
   int64_t* luparm,
   double* parmlu,
@@ -656,8 +659,11 @@ void clu9swp(
   int64_t* ai,
   int64_t* aj,
   double* v1,
+  double* c1,
+  double* w1,
   double* v2,
-  double* w,
+  double* c2,
+  double* w2,
   int64_t* lena,
   int64_t* luparm,
   double* parmlu,
@@ -673,7 +679,7 @@ void clu9swp(
   int64_t* locc,
   int64_t* locr,
   int64_t* inform){
-    lu9swp_(m,n,a_r,a_c,s_r,s_c,annz,av,ai,aj,v1,v2,w,lena,luparm,parmlu,a,indc,indr,ip,iq,ap,aq,lenc,lenr,locc,locr,inform);
+    lu9swp_(m,n,a_r,a_c,s_r,s_c,annz,av,ai,aj,v1,c1, w1,v2,c2,w2,lena,luparm,parmlu,a,indc,indr,ip,iq,ap,aq,lenc,lenr,locc,locr,inform);
   }
 
 

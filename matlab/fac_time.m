@@ -7,7 +7,6 @@ nmat = length(matFiles);
 matname = strings(nmat,1); 
 matsize = zeros(nmat,1);
 matnnz = zeros(nmat,1);
-facrank = zeros(nmat,1);
 factime = zeros(nmat,1); 
 facerror = -1*ones(nmat,1);
 nswaps = zeros(nmat,1); 
@@ -18,36 +17,35 @@ swaps = 20;
 Unnz = zeros(nmat,1);
 Lnnz = zeros(nmat, 1); 
 detA11 = zeros(nmat,swaps+1); 
-for k = 1:1
+for k = 1:nmat
     baseFileName = matFiles(k).name;
     nameLen = min(10, length(baseFileName));
     matname(k) = baseFileName(1:nameLen);
     fullFileName = fullfile(myDir,baseFileName);
-    fprintf('\n=================\n')
-    fprintf('Matrix: %s\n', baseFileName);
     load(fullFileName);
     A = Problem.A; 
+    
+    if size(A, 1) > 2*10^3
+        continue
+    end
+    fprintf('\n=================\n')
+    fprintf('Matrix: %s\n', baseFileName);
+
     [m, n] = size(A);
-    nrank = round(m/10);
-
-
+    
 
     matsize(k) = m;
     matnnz(k) = nnz(A); 
-    facrank(k) = nrank; 
     fprintf('Size: %d x %d\n', m, n);
     fprintf('Nnz: %d\n', matnnz(k)); 
-    fprintf('Factorization Rank: %d\n', nrank); 
    %% Compute the matrix factorization
     % Finds permutations P, Q and matrices L and U such that PAQ  = L*U
     try
         tic; 
-        mylu = lusol_obj(A, 'pivot', 'TCP', 'rank', nrank, 'nzinit', 50000000);
+        mylu = lusol_obj(A, 'pivot', 'TCP', 'rank', m, 'nzinit', 50000000);
         factime(k) = toc; 
         
             
-        % Record the log of the determinant of the nrank x nrank upper-left
-        % submatrix of PAQ = LU. To confirm the determinant is increasing
         mylu.U = mylu.getU(); 
         diagU = mylu.diagU();
         detA11(k,1) = sum(log10(abs(diagU))); 
@@ -61,13 +59,20 @@ for k = 1:1
         fprintf('FACTORIATION FAILED: %s\n', e.message);
         continue
     end
-    fprintf('Factorization Time: %.5f\n', factime(k));
+    fprintf('LUSOL Time: %.5f\n', factime(k));
 
+    try
+        tic
+        [L, U, P,Q] = lu(A);
+        ml_time = toc;
+        fprintf('MATLAB TIME: %.5f\n', ml_time)
+    end
+        
     try
 
  
-        T = table(matname, matsize, matnnz, facrank,factime,...
-                        'VariableNames', {'Name', 'Size', 'Matnnz', 'Rank','FacTime'});
+        T = table(matname, matsize, matnnz,factime,...
+                        'VariableNames', {'Name', 'Size', 'Matnnz', 'FacTime'});
         writetable(T, 'fac_time.csv'); 
     catch e
         fprintf('Error in post-swap process: %s', e.message);

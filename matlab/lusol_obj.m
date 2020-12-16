@@ -1051,6 +1051,13 @@ classdef lusol_obj < handle
 
     % methods to get the matrix factors
 
+    function [A] = getA(obj)
+       ai = obj.ai_ptr.Value;
+       aj = obj.aj_ptr.Value;
+       av = obj.av_ptr.Value;
+       
+       A = sparse(double(ai), double(aj), double(av)); 
+    end
     function [U] = getU(obj)
       %U  get the upper triangular factor U
       %
@@ -1228,13 +1235,33 @@ classdef lusol_obj < handle
         sc_ptr = libpointer(obj.int_ptr_class, s_c); 
         
         v1 = zeros(m,1);
+        c1 = zeros(m,1); 
+        w1 = zeros(n,1); 
         v2 = zeros(m,1); 
-        w = zeros(n,1); 
+        c2 = zeros(m,1); 
+        w2 = zeros(n,1); 
         
         v1_ptr = libpointer('doublePtr', v1);
+        c1_ptr = libpointer('doublePtr', c1); 
+        w1_ptr = libpointer('doublePtr', w1);
         v2_ptr = libpointer('doublePtr', v2);
-        w_ptr = libpointer('doublePtr', w); 
+        c2_ptr = libpointer('doublePtr', c2); 
+        w2_ptr = libpointer('doublePtr', w2); 
         
+        nrank = obj.stats.nrank; 
+        A = obj.getA();
+        A1 = obj.mulL(obj.mulU(eye(1048))); 
+        v1_ = zeros(m,1);
+        v1_(a_r) = 1; v1_(nrank+s_r) = -1;
+        w1_ = A(s_r+nrank,:) - A(a_r,:); 
+        
+        A([a_r,nrank+s_r],:) = A([nrank+s_r,a_r],:); 
+        A2 = A1 + v1_*w1_;
+        v2_ = A(:,nrank+s_c) - A(:,a_c); 
+        w2_ = zeros(n,1);
+        w2_(a_c) = 1;
+        w2_(nrank+s_c) = -1; 
+        A3 = A2 + v2_*w2_'; 
         inform_ptr = libpointer(obj.int_ptr_class, 0); 
         calllib('libclusol', 'clu9swp', ...
             obj.m_ptr,...
@@ -1248,8 +1275,11 @@ classdef lusol_obj < handle
             obj.ai_ptr,...
             obj.aj_ptr,...
             v1_ptr,...
+            c1_ptr, ...
+            w1_ptr,...
             v2_ptr,...
-            w_ptr,...
+            c2_ptr,...
+            w2_ptr,...
             obj.nzmax_ptr,...
             obj.luparm_ptr,...
             obj.parmlu_ptr,...
@@ -1265,6 +1295,25 @@ classdef lusol_obj < handle
             obj.locc_ptr,...
             obj.locr_ptr,...
             inform_ptr); 
+        
+        inform = inform_ptr.Value;
+        switch inform
+            case 0
+
+            case 7
+                err = MException('lusol:swapFac',...
+                                 'Not enough space in the row file'); 
+                throw(err);                   
+            case 8
+                err = MException('lusol:swapFac',...
+                                 'Singular U11');
+                throw(err);   
+            otherwise
+                err = MException('lusol:swapFac',...
+                                 'Unrecognized error code');
+                throw(err);
+        end
+            
     end
     function swapFacOld(obj, a_r, a_c, s_r, s_c)
         nrank = obj.stats.nrank; 

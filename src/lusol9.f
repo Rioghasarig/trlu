@@ -648,7 +648,7 @@
 
       subroutine lu9swp(m, n, a_r, a_c, s_r, s_c,
      $                   annz, av, ai, aj,
-     $                   v1, v2, w,
+     $                   v1, c1, w1, v2, c2,w2, 
      $                   lena,luparm, parmlu,
      $                   a, indc, indr, 
      $                   ip, iq, ap, aq, 
@@ -663,7 +663,8 @@
       integer            lenr(m), lenc(n)
       integer            indc(lena),indr(lena)
       integer            locc(n), locr(m)
-      double precision   av(annz), v1(m), v2(m), w(n)
+      double precision   av(annz), v1(m), v2(m), w1(n), w2(n)
+      double precision   c1(m), c2(m)
       integer            ai(annz), aj(annz), nrank              
       integer t
       double precision beta
@@ -673,14 +674,14 @@
          do k=1,annz
             if (ai(k) .eq. nrank+s_r) then
                t = aj(k)
-               w(t) = av(k)
+               w1(t) = av(k)
             end if
          end do
 
          do k=1,annz
             if (ai(k) .eq. a_r) then
                t = aj(k)
-               w(t) = w(t) - av(k)
+               w1(t) = w1(t) - av(k)
             end if
          end do
 
@@ -694,9 +695,10 @@
          ! Apply the rank one update
          v1(1:m) = 0
          v1(a_r) = 1
-         v1(nrank+s_r) = -1 
+         v1(nrank+s_r) = -1
+         c1 = v1
          beta = 1.0
-         call  lu9mod( m, n, beta, v1, w,lena,luparm, 
+         call  lu9mod( m, n, beta, c1, w1,lena,luparm, 
      $                 parmlu, a, indc, indr, ip, iq,
      $                 lenc, lenr, locc, locr,inform )
          if( inform .eq. 7) go to 970
@@ -728,11 +730,12 @@
                aj(k) = a_c
             end if
          end do
-         w(1:n) = 0.0
-         w(a_c) = 1.0
-         w(nrank+s_c) = -1.0
+         w2(1:n) = 0.0
+         w2(a_c) = 1.0
+         w2(nrank+s_c) = -1.0
+         c2 = v2
          beta =  1.0
-         call  lu9mod( m, n, beta, v2, w,lena,luparm, 
+         call  lu9mod( m, n, beta, c2, w2,lena,luparm, 
      $                 parmlu, a, indc, indr, ip, iq,
      $                 lenc,lenr, locc, locr,inform )
          if(inform .eq. 7) go to 970
@@ -741,7 +744,6 @@
 810      t = aq(a_c)
          aq(a_c) = aq(nrank+s_c)
          aq(nrank+s_c) = aq(a_c)
-         go to 990
       end if
      
       if (a_c .le. nrank) then
@@ -780,7 +782,9 @@
       double precision   parmlu(30), lua(lenlu),av(annz)
       integer            luparm(30), lup(m), luq(n)
       integer            ai(annz), aj(annz)
-      integer            luindc(lenlu), luindr(lenlu),lulocr(m)
+      integer            lulenc(n),lulenr(m)
+      integer            lulocc(n),lulocr(m)
+      integer            luindc(lenlu), luindr(lenlu)
       double precision   v(m), w(n), alpha
       integer            s_r, s_c
 
