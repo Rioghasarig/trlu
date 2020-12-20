@@ -1,0 +1,9 @@
+gcc -g -m64 -fPIC -c src/clusol.c -o src/clusol.o
+gfortran -m64 -fPIC -Jsrc -g -O0 -c src/lusol_precision.f90 -o src/lusol_precision.o
+gfortran -m64 -fPIC -Jsrc -g -O0 -c src/lusol.f90 -o src/lusol.o
+gfortran -m64 -fPIC -fdefault-integer-8 -g -O0 -c src/lusol_util.f -o src/lusol_util.o
+gfortran -m64 -fPIC -fdefault-integer-8 -g -O0 -c src/lusol6b.f -o src/lusol6b.o
+gfortran -m64 -fPIC -fdefault-integer-8 -g -O0 -c src/lusol7b.f -o src/lusol7b.o
+gfortran -m64 -fPIC -fdefault-integer-8 -g -O0 -c src/lusol8b.f -o src/lusol8b.o
+gfortran -m64 -fPIC -fdefault-integer-8 -g -O0 -c src/lusol9.f -o src/lusol9.o
+gcc -m64 -shared -Wl,--version-script,src/symbols.map src/clusol.o src/lusol_precision.o src/lusol.o src/lusol_util.o src/lusol6b.o src/lusol7b.o src/lusol8b.o src/lusol9.o -o src/libclusol.so  -Wl,-rpath,/usr/lib -lgfortran

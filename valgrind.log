@@ -1,0 +1,12 @@
+==116142== Callgrind, a call-graph generating cache profiler
+==116142== Copyright (C) 2002-2017, and GNU GPL'd, by Josef Weidendorfer et al.
+==116142== Using Valgrind-3.16.1 and LibVEX; rerun with -h for copyright info
+==116142== Command: /global/software/sl-7.x86_64/modules/tools/matlab/r2017b/bin/glnxa64/MATLAB -r cd\ matlab;\ big_test; -nojvm
+==116142== Parent PID: 60959
+==116142== 
+==116142== For interactive control, run 'callgrind_control -h'.
+==116142== 
+==116142== Events    : Ir
+==116142== Collected : 34373466882
+==116142== 
+==116142== I   refs:      34,373,466,882

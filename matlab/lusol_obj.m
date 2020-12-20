@@ -1032,7 +1032,7 @@ classdef lusol_obj < handle
       % data that only relevant after a factorize.
       %
 
-      % this method only works if no updated have occured.
+      % this method only works if no updates have occured.
       obj.update_check();
       d = obj.depcol_lx;
     end
@@ -1248,20 +1248,7 @@ classdef lusol_obj < handle
         c2_ptr = libpointer('doublePtr', c2); 
         w2_ptr = libpointer('doublePtr', w2); 
         
-        nrank = obj.stats.nrank; 
-        A = obj.getA();
-        A1 = obj.mulL(obj.mulU(eye(1048))); 
-        v1_ = zeros(m,1);
-        v1_(a_r) = 1; v1_(nrank+s_r) = -1;
-        w1_ = A(s_r+nrank,:) - A(a_r,:); 
-        
-        A([a_r,nrank+s_r],:) = A([nrank+s_r,a_r],:); 
-        A2 = A1 + v1_*w1_;
-        v2_ = A(:,nrank+s_c) - A(:,a_c); 
-        w2_ = zeros(n,1);
-        w2_(a_c) = 1;
-        w2_(nrank+s_c) = -1; 
-        A3 = A2 + v2_*w2_'; 
+ 
         inform_ptr = libpointer(obj.int_ptr_class, 0); 
         calllib('libclusol', 'clu9swp', ...
             obj.m_ptr,...
@@ -1369,7 +1356,23 @@ classdef lusol_obj < handle
 
     end
     
-    
+    function [alpha s_r, s_c] = maxS2(obj)
+        [m,n] = obj.size();
+        nrank = obj.stats.nrank;
+        Omega = randn(20, m-nrank);
+        Omega2 = [zeros(20,nrank), Omega]; 
+        A  = obj.A(obj.ap,obj.aq); 
+        OLU = obj.mulAt(Omega')';
+        S = Omega2*A- OLU;
+        [~, s_c] = max(sqrt(sum(S.^2)));
+        
+        e = zeros(n,1);
+        e(nrank+s_c) = 1;
+        LUe = obj.mulA(e); 
+        max_col = A(nrank+1:end,nrank+s_c) - LUe(nrank+1:end); 
+        [~, s_r] = max(abs(max_col));
+        alpha = max_col(s_r);
+    end
     function [alpha, s_r, s_c] = maxS(obj)
        % Estimates the maximum of the Schur complement. 
        [m,n] = obj.size(); 
@@ -1484,11 +1487,12 @@ classdef lusol_obj < handle
         y = randn(nrank, 1); 
         x = obj.solveU11(obj.solveL11(y));
         
-        ai = double(obj.ai_ptr.Value);
-        aj = double(obj.aj_ptr.Value);
-        av = obj.av_ptr.Value;
-        Apq = sparse(ai,aj,av); 
-        err = max(abs(Apq(1:nrank,1:nrank)*x - y ));
+%         ai = double(obj.ai_ptr.Value);
+%         aj = double(obj.aj_ptr.Value);
+%         av = obj.av_ptr.Value;
+%        Apq = sparse(ai,aj,av);
+        A11 = obj.A(obj.ap(1:nrank),obj.aq(1:nrank));
+        err = max(abs(A11*x - y ));
     end
     
     function [err] = facerror12(obj)

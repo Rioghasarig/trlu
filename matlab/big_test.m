@@ -19,7 +19,7 @@ Unnz = zeros(nmat,1);
 Lnnz = zeros(nmat, 1); 
 detA11 = zeros(nmat,swaps+1); 
 
-for k = 13:13
+for k = 1:nmat
     baseFileName = matFiles(k).name;
     nameLen = min(10, length(baseFileName));
     matname(k) = baseFileName(1:nameLen);
@@ -69,7 +69,7 @@ for k = 13:13
         tic; 
         rng(5);    
         for i = 1:swaps
-            fprintf('Swap: %d\n ', i); 
+            fprintf('Swap: %d\n', i); 
             [alpha, s_r, s_c] = mylu.maxS(); 
             [beta, a_r, a_c] = mylu.maxA11inv(alpha,s_r, s_c); 
 

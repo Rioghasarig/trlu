@@ -820,7 +820,7 @@
       
       ! Compute column s_c of L21*U12
       w(1:n) = 0.0
-      w(s_c) = 1.0
+      w(nrank+s_c) = 1.0
       call lu6mul(5, m,n, v, w, lenlu, luparm, parmlu,
      $            lua, luindc, luindr, lup, luq,
      $            lulenc, lulenr, lulocc, lulocr)

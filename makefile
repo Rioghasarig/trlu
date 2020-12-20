@@ -160,7 +160,7 @@ src/clusol.o: src/clusol.c src/clusol.h
 
 # Link the dynamic library
 src/libclusol.$(LIB_SUFFIX): $(OBJ) $(EXPORT_SYMBOLS)
-	$(LD) $(LDFLAGS) $(OBJ) -o $@ $(LDLIBS)
+	$(LD) -g $(LDFLAGS) $(OBJ) -o  $@ $(LDLIBS)
 
 # file copying to matlab directory
 $(MATLAB_FILES): src/libclusol.$(LIB_SUFFIX) src/clusol.h
