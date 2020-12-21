@@ -748,7 +748,7 @@ classdef lusol_obj < handle
       obj.ap = obj.ap_ptr.Value;
       obj.aq = obj.aq_ptr.Value;
       obj.L = obj.L0();
-      
+      obj.A = obj.A(obj.ap,obj.aq);
             
       [ai,aj,av] = find(A(obj.ap,obj.aq)); 
       annz = size(av,1); 
@@ -1198,111 +1198,34 @@ classdef lusol_obj < handle
     function [inform, c] = swapRows(obj, i1,i2)
         [m, ~] = obj.size();
         %% Get Rows i1 and i2 of A(p,q) and find their difference
-        r1 = obj.A(obj.ap(i1),:)';
-        r2 = obj.A(obj.ap(i2),:)'; 
-        w = r2(obj.aq) - r1(obj.aq); 
-        p = obj.p; 
+        r1 = obj.A(i1,:)';
+        r2 = obj.A(i2,:)'; 
+        w = r2 - r1; 
         v = zeros(m,1); 
         v(i1) = 1;
         v(i2) = -1; 
+        obj.A([i1, i2], :) = obj.A([i2,i1],:); 
         obj.ap([i1 i2]) =  obj.ap([i2 i1]); 
-
         [inform, c] = obj.r1mod(v,w); 
           
     end
     
     function [inform, c] = swapCols(obj, j1,j2)
-         [~, n] = obj.size(); 
-        c1 = obj.A(:,obj.aq(j1));
-        c2 = obj.A(:,obj.aq(j2)); 
-        v = c2(obj.ap) - c1(obj.ap); 
+        [~, n] = obj.size(); 
+        c1 = obj.A(:,j1);
+        c2 = obj.A(:,j2); 
+        v = c2 - c1; 
         
         w = zeros(n,1);
         w(j1) = 1;
         w(j2) = -1; 
-        
+        obj.A(:,[j1 j2]) = obj.A(:, [j2 j1]); 
         obj.aq([j1 j2]) = obj.aq([j2 j1]); 
         [inform, c] = obj.r1mod(v,w); 
 
     end
     
     function swapFac(obj, a_r, a_c, s_r, s_c)
-        [m,n] = obj.size; 
-        
-        ar_ptr = libpointer(obj.int_ptr_class, a_r);
-        ac_ptr = libpointer(obj.int_ptr_class, a_c);
-        sr_ptr = libpointer(obj.int_ptr_class, s_r);
-        sc_ptr = libpointer(obj.int_ptr_class, s_c); 
-        
-        v1 = zeros(m,1);
-        c1 = zeros(m,1); 
-        w1 = zeros(n,1); 
-        v2 = zeros(m,1); 
-        c2 = zeros(m,1); 
-        w2 = zeros(n,1); 
-        
-        v1_ptr = libpointer('doublePtr', v1);
-        c1_ptr = libpointer('doublePtr', c1); 
-        w1_ptr = libpointer('doublePtr', w1);
-        v2_ptr = libpointer('doublePtr', v2);
-        c2_ptr = libpointer('doublePtr', c2); 
-        w2_ptr = libpointer('doublePtr', w2); 
-        
- 
-        inform_ptr = libpointer(obj.int_ptr_class, 0); 
-        calllib('libclusol', 'clu9swp', ...
-            obj.m_ptr,...
-            obj.n_ptr,...
-            ar_ptr,...
-            ac_ptr,...
-            sr_ptr,...
-            sc_ptr,...
-            obj.annz_ptr,...
-            obj.av_ptr,...
-            obj.ai_ptr,...
-            obj.aj_ptr,...
-            v1_ptr,...
-            c1_ptr, ...
-            w1_ptr,...
-            v2_ptr,...
-            c2_ptr,...
-            w2_ptr,...
-            obj.nzmax_ptr,...
-            obj.luparm_ptr,...
-            obj.parmlu_ptr,...
-            obj.a_ptr,...
-            obj.indc_ptr,...
-            obj.indr_ptr,...
-            obj.p_ptr,...
-            obj.q_ptr,...
-            obj.ap_ptr,...
-            obj.aq_ptr,...
-            obj.lenc_ptr,...
-            obj.lenr_ptr,...
-            obj.locc_ptr,...
-            obj.locr_ptr,...
-            inform_ptr); 
-        
-        inform = inform_ptr.Value;
-        switch inform
-            case 0
-
-            case 7
-                err = MException('lusol:swapFac',...
-                                 'Not enough space in the row file'); 
-                throw(err);                   
-            case 8
-                err = MException('lusol:swapFac',...
-                                 'Singular U11');
-                throw(err);   
-            otherwise
-                err = MException('lusol:swapFac',...
-                                 'Unrecognized error code');
-                throw(err);
-        end
-            
-    end
-    function swapFacOld(obj, a_r, a_c, s_r, s_c)
         nrank = obj.stats.nrank; 
         if a_r ~= nrank+1
             [inform1, c1] = obj.swapRows(a_r, nrank+s_r);
@@ -1356,20 +1279,20 @@ classdef lusol_obj < handle
 
     end
     
-    function [alpha s_r, s_c] = maxS2(obj)
+    function [alpha, s_r, s_c] = maxS2(obj)
         [m,n] = obj.size();
         nrank = obj.stats.nrank;
         Omega = randn(20, m-nrank);
-        Omega2 = [zeros(20,nrank), Omega]; 
-        A  = obj.A(obj.ap,obj.aq); 
-        OLU = obj.mulAt(Omega')';
-        S = Omega2*A- OLU;
+        A22 = obj.A(nrank+1:end,nrank+1:end);
+        %Omega2 = [zeros(20,nrank), Omega]; 
+        
+        OLU = obj.mulA22t(Omega')';
+        S = Omega*A22 - OLU(:,nrank+1:end);
         [~, s_c] = max(sqrt(sum(S.^2)));
         
-        e = zeros(n-nrank,1);
-        e(s_c) = 1;
-        Us = obj.mulU12(e);
-        max_col = A22(:,s_c) - obj.mulL21(Us);
+        e = double((1:n-nrank) == (s_c));
+        LUe = obj.mulA22(e); 
+        max_col = A22(:,s_c) - LUe(nrank+1:end); 
         [~, s_r] = max(abs(max_col));
         alpha = max_col(s_r);
     end
@@ -1491,7 +1414,7 @@ classdef lusol_obj < handle
 %         aj = double(obj.aj_ptr.Value);
 %         av = obj.av_ptr.Value;
 %        Apq = sparse(ai,aj,av);
-        A11 = obj.A(obj.ap(1:nrank),obj.aq(1:nrank));
+        A11 = obj.A(1:nrank,1:nrank);
         err = max(abs(A11*x - y ));
     end
     
@@ -1780,6 +1703,13 @@ classdef lusol_obj < handle
       % See also: lusol.mul
       Y = obj.mul(X,5);
     end
+    
+    function Y = mulA22(obj, X)
+       nrank = obj.stats.nrank;
+       X = [zeros(nrank,size(X,2)) ; X];
+       Y = obj.mul(X,5);
+       Y = Y(nrank+1:end,:); 
+    end
 
     function Y = mulAt(obj,X)
       %MULAT  compute Y = A'*X.
@@ -1788,6 +1718,13 @@ classdef lusol_obj < handle
       %
       % See also: lusol.mul
       Y = obj.mul(X,6);
+    end
+    
+    function Y = mulA22t(obj, X)
+       nrank = obj.stats.nrank;
+       X = [zeros(nrank,size(X,2)) ; X]; 
+       Y =obj.mul(X,6);
+       Y = Y(nrank+1:end,:); 
     end
 
     function Y = mulL(obj,X)
@@ -1888,7 +1825,7 @@ classdef lusol_obj < handle
     end
   
 
-    function [inform,c] = r1mod(obj,v,w,beta)
+    function [inform,v] = r1mod(obj,v,w,beta)
       %R1MOD  update LU factorization to perform rank-1 update A+beta*v*w'
       %
       % Usage:
@@ -1916,14 +1853,14 @@ classdef lusol_obj < handle
       if nargin < 4 || isempty(beta)
         beta = 1.0;
       end
-      c =  obj.solveL(v); 
+      
       % check and process input vectors
-      c = lusol_obj.vector_process(c,m);
+      v = lusol_obj.vector_process(v,m);
       w = lusol_obj.vector_process(w,n);
 
       % prepare temporary libpointers
       beta_ptr = libpointer('doublePtr',beta);
-      c_ptr = libpointer('doublePtr',c);
+      v_ptr = libpointer('doublePtr',v);
       w_ptr = libpointer('doublePtr',w);
       ret_inform_ptr = libpointer(obj.int_ptr_class,0);
 
@@ -1932,7 +1869,7 @@ classdef lusol_obj < handle
         obj.m_ptr, ...
         obj.n_ptr, ...
         beta_ptr, ...
-        c_ptr, ...
+        v_ptr, ...
         w_ptr, ...
         obj.nzmax_ptr, ...
         obj.luparm_ptr, ...
@@ -1942,6 +1879,7 @@ classdef lusol_obj < handle
         obj.indr_ptr, ...
         obj.p_ptr, ...
         obj.q_ptr, ...
+        obj.lenc_ptr, ...
         obj.lenr_ptr, ...
         obj.locc_ptr, ...
         obj.locr_ptr, ...

@@ -70,7 +70,7 @@ for k = 1:nmat
         rng(5);    
         for i = 1:swaps
             fprintf('Swap: %d\n', i); 
-            [alpha, s_r, s_c] = mylu.maxS(); 
+            [alpha, s_r, s_c] = mylu.maxS2(); 
             [beta, a_r, a_c] = mylu.maxA11inv(alpha,s_r, s_c); 
 
             if abs(alpha*beta) < 5
