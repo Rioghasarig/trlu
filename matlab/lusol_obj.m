@@ -1204,10 +1204,9 @@ classdef lusol_obj < handle
         v = zeros(m,1); 
         v(i1) = 1;
         v(i2) = -1; 
+        [inform, c] = obj.r1mod(v,w); 
         obj.A([i1, i2], :) = obj.A([i2,i1],:); 
         obj.ap([i1 i2]) =  obj.ap([i2 i1]); 
-        [inform, c] = obj.r1mod(v,w); 
-          
     end
     
     function [inform, c] = swapCols(obj, j1,j2)
@@ -1219,10 +1218,9 @@ classdef lusol_obj < handle
         w = zeros(n,1);
         w(j1) = 1;
         w(j2) = -1; 
+        [inform, c] = obj.r1mod(v,w); 
         obj.A(:,[j1 j2]) = obj.A(:, [j2 j1]); 
         obj.aq([j1 j2]) = obj.aq([j2 j1]); 
-        [inform, c] = obj.r1mod(v,w); 
-
     end
     
     function swapFac(obj, a_r, a_c, s_r, s_c)
@@ -1358,16 +1356,23 @@ classdef lusol_obj < handle
    
     
     function [beta, a_r, a_c] = maxA11inv(obj,alpha, s_r,s_c)
+        %% Estimates the maximum entry of A11^-1 where A11 is the matrix 
+        % formed by rows [1:nrank,nrank+s_r] and cols [1:nrank,nrank+s_c]
+        % of A
+       
+        %% Compute the factorization A11 = L11*U11 
+        % L11 = [L  , 0]    U11 = [U,   u12]
+        %       [l21, 1]          [0, alpha]
+        % L and U are the nrank x nrank submatrix of the 
+        % current truncated LU factorization
         [m,n] = obj.size;
         nrank = obj.stats.nrank; 
-        %L11 = obj.L([1:nrank, nrank+s_r], [1:nrank, nrank+s_r]); 
-        e = zeros(m-nrank,1);
-        e(s_r) = 1;
+        e = double(1:(m-nrank)== s_r)';
         l21 = obj.mulL21t(e);
-        e = zeros(n-nrank,1);
-        e(s_c) = 1; 
+        e = double(1:(n-nrank) == s_c)';
         u12 = obj.mulU12(e); 
 
+        %% Compute Omega*A11^-1        
         Omega1 = randn(20,nrank); 
         Omega2 = randn(20,1); 
         v1 = obj.solveU11t(Omega1');
@@ -1377,6 +1382,8 @@ classdef lusol_obj < handle
         B2 = v2;
         B1 = obj.solveL11t(v1-l21*v2'); 
         B = [B1', B2];
+        
+        %% Find maximum element
         [~,a_r] = max(sqrt(sum(B.^2)));
         max_col = zeros(nrank+1,1);
         max_col(a_r,1) = 1;
@@ -1394,11 +1401,28 @@ classdef lusol_obj < handle
     end
     
     function [diagU] = diagU(obj)
-        [m, n] = obj.size(); 
-        nrank = obj.stats.nrank;
-        p = obj.p;
-        q = obj.q; 
-        diagU = obj.U(sub2ind([m n], p(1:nrank), q(1:nrank)));
+       [m,n] = obj.size;
+       nrank = obj.stats.nrank;
+       diagU = zeros(m,1);
+       diagU_ptr = libpointer('doublePtr', diagU);
+       ret_inform_ptr = libpointer(obj.int_ptr_class,0);
+       calllib('libclusol', 'clu9diagu',...
+          obj.m_ptr,...
+          obj.n_ptr,...
+          obj.nzmax_ptr,...
+          obj.luparm_ptr,...
+          diagU_ptr,...
+          obj.a_ptr,...
+          obj.indc_ptr,...
+          obj.indr_ptr,...
+          obj.p_ptr,...
+          obj.q_ptr,...
+          obj.lenr_ptr,...
+          obj.locr_ptr,...
+          ret_inform_ptr);
+
+       diagU = diagU_ptr.value;
+       diagU = diagU(1:nrank);
     end 
     
     
@@ -1422,20 +1446,17 @@ classdef lusol_obj < handle
     function [err] = facerror12(obj)
         nrank = obj.stats.nrank;
         [~,n] = obj.size;
-        x = randn(n,1);
-        y1 = obj.mulL11(obj.mulU11(x(1:nrank)));
-        err = max(abs(y1 - obj.A(obj.ap(1:nrank),obj.aq)*x));        
+        x = randn(n-nrank,1);
+        y1 = obj.mulL11(obj.mulU12(x));
+        err = max(abs(y1 - obj.A(1:nrank,nrank+1:end)*x));        
     end
  
     function [err] = facerror21(obj)
         nrank = obj.stats.nrank;
         [~,n] = obj.size;
         x = randn(nrank,1);
-        x = obj.mulU11(x); 
-        y1 = obj.mulL11(x);
-        y2 = obj.mulL21(x); 
-        y = [y1  ; y2];
-        err = max(abs(y - obj.A(obj.ap,obj.aq(1:nrank)*x)));        
+        y = obj.mulL21(obj.mulU11(x)); 
+        err = max(abs(y - obj.A(nrank+1:end,1:nrank)*x));
     end
     
     % solve methods

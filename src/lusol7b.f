@@ -184,7 +184,6 @@
       double precision   lmax
       logical            cmprss, first, swap
       
-      nrank  = luparm(15)
       lmax   = parmlu(2)
       small  = parmlu(3)
       lfree  = lena - lenl
@@ -224,8 +223,7 @@
 !        We are about to set  v  =  v  +  ( - cv/cw ) * w.
 !        See if rows  v  and  w  should be interchanged first.
 !        ---------------------------------------------------------------
-  200    if (klast .gt. nrank)  go to 210 
-         if (lmax * abs( cv )  .lt.  abs( cw )) go to 210
+  200    if (lmax * abs( cv )  .lt.  abs( cw )) go to 210
          if (lmax * abs( cw )  .lt.  abs( cv )) go to 220
          if (lenr(iv)          .lt.  lenw     ) go to 220
 

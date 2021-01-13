@@ -1,3 +1,31 @@
+      subroutine lu9diagu(m,n,lena, luparm, diagU, a, indc, indr, 
+     $                    ip, iq, lenr, locr, inform)
+
+      integer m
+      integer luparm(30)
+      double precision a(lena), diagU(m)
+      integer indc(lena), indr(lena), ip(m), iq(n)
+      integer lenr(m), locr(m)
+
+
+      nrank = luparm(16)
+      do k = 1,nrank
+         i = ip(k)
+         j = iq(k)
+         l1 = locr(i)
+         l2 = l1 + lenr(i) - 1
+
+         diagU(k) = 0
+         do l = l1, l2
+            if (indr(l) .eq. j) then 
+               diagU(k) = a(l)
+               exit 
+            end if
+         end do
+      end do
+
+      end
+
       subroutine lu9mod( m, n, beta, v, w,
      $                   lena,luparm, parmlu,
      $                   a, indc, indr, 

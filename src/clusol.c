@@ -524,6 +524,23 @@ void clu8dlr(
   lu8dlr_(mode,m,n,idel,v,w,lena,luparm,parmlu,a,indc,indr,p,q,lenc,lenr,locc,locr,inform);
 }
 
+void clu9diagu(
+  int64_t* m,
+  int64_t* n, 
+  int64_t* lena,
+  int64_t* luparm,
+  double* diagU,
+  double* a, 
+  int64_t* indc,
+  int64_t* indr,
+  int64_t* ip,
+  int64_t* iq,
+  int64_t* lenr,
+  int64_t* locr,
+  int64_t* inform) {
+  lu9diagu_(m,n,lena,luparm,diagU,a,indc,indr,ip,iq,lenr,locr,inform);
+}
+
 void clu9mod(
   int64_t* m,
   int64_t* n,
