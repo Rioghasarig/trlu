@@ -1425,7 +1425,17 @@ classdef lusol_obj < handle
        diagU = diagU(1:nrank);
     end 
     
-    
+    function [err] = L2error(obj)
+       [~,n] = obj.size;
+       err = 0;
+       ident = speye(n);
+       block_size = 1000;
+       for j = 1:block_size:n 
+           block = full(ident(:,min(j+block_size-1,n)));
+           E = obj.A*block - obj.mulA(block);
+           err = err + norm(E, 'fro')^2; 
+       end
+    end
     function [err] = facerror(obj)
         % Computes the maximum of the error | PAQ - LU| on the 
         % first nrank rows and columns. 

@@ -1,5 +1,5 @@
 %warning('off','all');
-myDir = './test_data';
+myDir = './small_mats';
 matFiles = dir(fullfile(myDir, '*.mat'));
 nmat = length(matFiles);
 
@@ -16,13 +16,13 @@ nswaps = zeros(nmat,1);
 swaperror = -1*ones(nmat,1);
 swaptime = zeros(nmat,1); 
 Ucond = zeros(nmat,2); 
-swaps = 20; 
+swaps = 2; 
 Unnz = zeros(nmat,1);
 Lnnz = zeros(nmat, 1); 
 detA11 = zeros(nmat,swaps+1); 
 
 f = 10;
-for k = 1:nmat
+for k = nmat-1:nmat-1
     baseFileName = matFiles(k).name;
     nameLen = min(10, length(baseFileName));
     matname(k) = baseFileName(1:nameLen);
@@ -122,12 +122,6 @@ for k = 1:nmat
        
        
        
-      % A12 = mylu.A(1:nrank,nrank+1:end);
-      % A21 = mylu.A(nrank+1:end,1:nrank);
-       
-     %  M1 = mylu.solveU11(mylu.solveL11(A12));
-     %  M1max = max(max(abs(M1)));
-     %  fprintf('M1 max: %d\n', M1max);
        T = table(matname, matsize, matnnz, facrank,factime, facerror,nswaps,...
                        swaptime,swaperror, Ucond(:,1),Ucond(:,2), Unnz,Lnnz,...
                        'VariableNames', {'Name', 'Size', 'Matnnz', 'Rank','FacTime', 'FacError', 'NumSwaps', ...
