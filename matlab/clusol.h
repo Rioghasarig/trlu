@@ -268,6 +268,7 @@ void clu9clr(
   int64_t* locc,
   int64_t* locr,
   double* c, 
+  double* lmax,
   int64_t* inform); 
 
 void clu1or2(
@@ -280,65 +281,5 @@ void clu1or2(
   int64_t* lenc,
   int64_t* locc);
 
-void clu9maxs(
-  int64_t* m,
-  int64_t* n,
-  int64_t* nrank,
-  int64_t* lenlu,
-  int64_t* luparm,
-  double* parmlu,
-  double* lua,
-  int64_t* luindc,
-  int64_t* luindr,
-  int64_t* lup,
-  int64_t* luq,
-  int64_t* lulenc,
-  int64_t* lulenr,
-  int64_t* lulocc,
-  int64_t* lulocr,
-  int64_t* annz,
-  double* av,
-  int64_t* ai,
-  int64_t* aj,
-  double* u,
-  double* uS,
-  double* v,
-  double* w,
-  int64_t* s_r,
-  int64_t* s_c, 
-  double* alpha
-  );
 
-void clu9swp(
-  int64_t* m,
-  int64_t* n,
-  int64_t* a_r,
-  int64_t* a_c,
-  int64_t* s_r,
-  int64_t* s_c,
-  int64_t* annz,
-  double* av,
-  int64_t* ai,
-  int64_t* aj,
-  double* v1,
-  double* c1,
-  double* w1,
-  double* v2,
-  double* c2, 
-  double* w2,
-  int64_t* lena,
-  int64_t* luparm,
-  double* parmlu,
-  double* a,
-  int64_t* indc,
-  int64_t* indr,
-  int64_t* ip,
-  int64_t* iq,
-  int64_t* ap, 
-  int64_t* aq, 
-  int64_t* lenc,
-  int64_t* lenr,
-  int64_t* locc,
-  int64_t* locr,
-  int64_t* inform);
 #endif // CLUSOL_H_

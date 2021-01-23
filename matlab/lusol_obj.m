@@ -1051,12 +1051,9 @@ classdef lusol_obj < handle
 
     % methods to get the matrix factors
 
-    function [A] = getA(obj)
-       ai = obj.ai_ptr.Value;
-       aj = obj.aj_ptr.Value;
-       av = obj.av_ptr.Value;
-       
-       A = sparse(double(ai), double(aj), double(av)); 
+    function [A11] = getA11(obj)
+        nrank = obj.stats.nrank;
+        A11 = obj.A(1:nrank,1:nrank);
     end
     function [U] = getU(obj)
       %U  get the upper triangular factor U
@@ -1223,8 +1220,10 @@ classdef lusol_obj < handle
         obj.aq([j1 j2]) = obj.aq([j2 j1]); 
     end
     
-    function swapFac(obj, a_r, a_c, s_r, s_c)
+    function [lmaxr,lmaxc] = swapFac(obj, a_r, a_c, s_r, s_c)
         nrank = obj.stats.nrank; 
+        lmaxr = 1;
+        lmaxc = 1; 
         if a_r ~= nrank+1
             [inform1, c1] = obj.swapRows(a_r, nrank+s_r);
         end
@@ -1235,7 +1234,7 @@ classdef lusol_obj < handle
  
         % Clear extra rows
         if a_c ~=nrank+1
-            inform = obj.luclear(c2);
+            [inform,lmaxc] = obj.luclear(c2);
             switch inform
                 case 0
                     
@@ -1256,7 +1255,7 @@ classdef lusol_obj < handle
         end
         
         if a_r ~= nrank+1
-            inform = obj.luclear(c1);
+            [inform,lmaxr] = obj.luclear(c1);
             switch inform
                 case 0
                     
@@ -1429,26 +1428,23 @@ classdef lusol_obj < handle
        [~,n] = obj.size;
        err = 0;
        ident = speye(n);
-       block_size = 1000;
+       block_size = 10000;
        for j = 1:block_size:n 
-           block = full(ident(:,min(j+block_size-1,n)));
+           block = full(ident(:,j:min(j+block_size-1,n)));
            E = obj.A*block - obj.mulA(block);
+           if any(isnan(E))
+               e = MException('L2error', 'nan found in E');
+               throw(e);
+           end
            err = err + norm(E, 'fro')^2; 
        end
+       err = sqrt(err)/norm(obj.A,'fro');
     end
     function [err] = facerror(obj)
-        % Computes the maximum of the error | PAQ - LU| on the 
-        % first nrank rows and columns. 
-        
-        
         nrank = obj.stats.nrank;
-        y = randn(nrank, 1); 
-        x = obj.solveU11(obj.solveL11(y));
+        x = randn(nrank, 1); 
+        y = obj.mulL11(obj.mulU11(x));
         
-%         ai = double(obj.ai_ptr.Value);
-%         aj = double(obj.aj_ptr.Value);
-%         av = obj.av_ptr.Value;
-%        Apq = sparse(ai,aj,av);
         A11 = obj.A(1:nrank,1:nrank);
         err = max(abs(A11*x - y ));
     end
@@ -1620,9 +1616,8 @@ classdef lusol_obj < handle
     
     function [X inform] = solveU11(obj, B)
       nrank = obj.stats.nrank; 
-      [~,k] = size(B);
-      [~,n] = obj.size(); 
-      B = [B ; zeros(n-nrank, k)];  
+      [m,~] = obj.size(); 
+      B = [B ; zeros(m-nrank, size(B,2))];  
       
       [X inform resid] = obj.solve(B,3);
       X = X(1:nrank,:); 
@@ -1637,9 +1632,8 @@ classdef lusol_obj < handle
 
     function [X inform] = solveU11t(obj,B)
       nrank = obj.stats.nrank; 
-      [~,k] = size(B);
-      [m,~] = obj.size(); 
-      B = [B ; zeros(m-nrank, k)]; 
+      [~,n] = obj.size(); 
+      B = [B ; zeros(n-nrank, size(B,2))]; 
       [X inform ~] = obj.solve(B,4); 
       X = X(1:nrank,:); 
         
@@ -1818,22 +1812,22 @@ classdef lusol_obj < handle
     end
     
     function Y = mulU11(obj, X)
-       [m,~] = obj.size; 
+       [~,n] = obj.size; 
        nrank = obj.stats.nrank;
        Xr = size(X,1);
        if Xr ~= nrank
            error('lusol:mulU11', "X has incorrect size");
        end
-       X = [X ; zeros(m-nrank,size(X,2))];
+       X = [X ; zeros(n-nrank,size(X,2))];
        Y = obj.mul(X,3);
        Y = Y(1:nrank,:);        
     end
     
     function Y = mulU12(obj, X)
-       [m,~] = obj.size; 
+       [~,n] = obj.size; 
        nrank = obj.stats.nrank;
        Xr = size(X,1);
-       if Xr ~= m-nrank
+       if Xr ~= n-nrank
            error('lusol:mulU12', "X has incorrect size");
        end
        X = [zeros(nrank,size(X,2)); X];
@@ -1878,6 +1872,16 @@ classdef lusol_obj < handle
       %  inform =  7  if the update was not completed (lack of storage).
       %
 
+      locr = obj.locr_ptr.Value;
+      lenr = obj.lenr_ptr.Value;
+      indr = obj.indr_ptr.Value;
+      lv1 = locr(265);
+      lenv = lenr(265);
+      lv2 = lv1 + lenv - 1;
+      jvs = indr(lv1:lv2);
+      
+      
+      
       % get size of matrix
       [m n] = obj.size();
 
@@ -1920,10 +1924,12 @@ classdef lusol_obj < handle
       
       % prepare function output
       inform = ret_inform_ptr.Value;
+      v = v_ptr.Value; 
     end
     
-    function inform = luclear(obj, c)
+    function [inform,lmax] = luclear(obj, c)
       [m,~] = obj.size();
+      lmax_ptr = libpointer('doublePtr', 0); 
       ret_inform_ptr = libpointer(obj.int_ptr_class,0);
       c = lusol_obj.vector_process(c, m); 
       c_ptr = libpointer('doublePtr', c); 
@@ -1942,9 +1948,11 @@ classdef lusol_obj < handle
         obj.locc_ptr, ...
         obj.locr_ptr, ...
         c_ptr, ...
+        lmax_ptr, ...
         ret_inform_ptr); 
 
       inform = ret_inform_ptr.Value; 
+      lmax = lmax_ptr.Value;
     end
     % inherited, not implemented methods
 

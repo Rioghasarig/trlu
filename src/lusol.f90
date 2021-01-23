@@ -1152,9 +1152,9 @@ contains
     Uspace = parmlu(6)
     dens1  = parmlu(7)
     dens2  = parmlu(8)
-    Utri   = .true.
+    Utri   = .false.
     Ltri   = .false.
-    spars1 = .false.
+    spars1 = .true.
     spars2 = .false.
     dense  = .false.
     kslack = 0        ! 12 Dec 2015: Count slacks accepted during Utri.

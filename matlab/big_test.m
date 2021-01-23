@@ -1,5 +1,5 @@
 %warning('off','all');
-myDir = './small_mats';
+myDir = './test_data';
 matFiles = dir(fullfile(myDir, '*.mat'));
 nmat = length(matFiles);
 
@@ -16,13 +16,16 @@ nswaps = zeros(nmat,1);
 swaperror = -1*ones(nmat,1);
 swaptime = zeros(nmat,1); 
 Ucond = zeros(nmat,2); 
-swaps = 2; 
+swaps = 20; 
 Unnz = zeros(nmat,1);
 Lnnz = zeros(nmat, 1); 
 detA11 = zeros(nmat,swaps+1); 
-
+alphaError = zeros(nmat,swaps+1);
+betaError = zeros(nmat,swaps+1); 
+lmaxrs = zeros(nmat,swaps);
+lmaxcs = zeros(nmat,swaps); 
 f = 10;
-for k = nmat-1:nmat-1
+for k = 1:nmat
     baseFileName = matFiles(k).name;
     nameLen = min(10, length(baseFileName));
     matname(k) = baseFileName(1:nameLen);
@@ -33,6 +36,7 @@ for k = nmat-1:nmat-1
     A = Problem.A; 
     [m, n] = size(A);
     nrank = round(m/10);
+    nrank = 10;
 
 
 
@@ -77,20 +81,30 @@ for k = nmat-1:nmat-1
         for i = 1:swaps
             fprintf('Swap: %d\n', i); 
             [alpha, s_r, s_c] = mylu.maxS2(); 
-            %S = mylu.A(nrank+1:end,nrank+1:end) - mylu.mulA22(eye(m-nrank));
-           % A11 = mylu.A([1:nrank, nrank+s_r], [1:nrank, nrank+s_c]);
-            [beta, a_r, a_c] = mylu.maxA11inv(alpha,s_r, s_c); 
-            
+%             S = mylu.A(nrank+1:end,nrank+1:end) - mylu.mulA22(eye(m-nrank));
+%             alphaT = max(max(abs(S)));
+%             fprintf('alpha: %d , %d\n', alpha, alphaT);
+%             
+%             A11 = full(mylu.A([1:nrank, nrank+s_r], [1:nrank, nrank+s_c]));
+%             betaT = max(max(abs(A11^-1))); 
+%             
+             [beta, a_r, a_c] = mylu.maxA11inv(alpha,s_r, s_c);            
+%             fprintf('beta: %d, %d\n', full(beta), max(max(abs(A11^-1))));
+%             
+%             alphaError(k,i) = abs(abs(alphaT)/abs(alpha));
+%             betaError(k,i) = abs(abs(betaT)/abs(beta));             
             if abs(alpha*beta) < f
                break
             end            
-            mylu.swapFac(a_r,a_c,s_r,s_c);
+            [lmaxr,lmaxc] = mylu.swapFac(a_r,a_c,s_r,s_c);
 
             detA11(k,i+1) = sum(log10(abs(mylu.diagU)));
             if detA11(k,i+1) - detA11(k,i) < log10(f)
                 fprintf('WARNING: detA11 not increasing enough \n');
             end
             nswaps(k) = nswaps(k) + 1; 
+            lmaxrs(k,nswaps(k)) = lmaxr;
+            lmaxc(k,nswaps(k)) = lmaxc;
         end
     catch e
         fprintf('Error during swaps: %s - %s\n', e.identifier, e.message);
@@ -120,7 +134,7 @@ for k = nmat-1:nmat-1
        Lnnz(k) = mylu.stats.lenL; 
        fprintf('Lnnz: %d\n', Lnnz(k)); 
        
-       
+
        
        T = table(matname, matsize, matnnz, facrank,factime, facerror,nswaps,...
                        swaptime,swaperror, Ucond(:,1),Ucond(:,2), Unnz,Lnnz,...
@@ -131,5 +145,25 @@ for k = nmat-1:nmat-1
         fprintf('Error in post-swap process: %s', e.message);
         continue
     end
+    
 end
+
+% alphaHist = [];
+% j = 1;
+% 
+% for k = 1:nmat
+%     for i = 1:nswaps(k)
+%         alphaHist(j) = alphaError(k,i);
+%         j = j+1;
+%     end
+% end
+% 
+% betaHist = [];
+% j = 1; 
+% for k = 1:nmat
+%     for i = 1:nswaps(k)+1
+%         betaHist(j) = betaError(k,i);
+%         j = j + 1;
+%     end
+% end
 

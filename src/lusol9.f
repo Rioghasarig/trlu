@@ -403,11 +403,11 @@
      $                   lena, luparm, parmlu, 
      $                   a, indc, indr, 
      $                   ip, iq, lenr, locc, locr,
-     $                   c, inform)
+     $                   c, lmax,inform)
 
       implicit           double precision (a-h,o-z)
       integer            luparm(30)
-      double precision   parmlu(30), a(lena), c(m)
+      double precision   parmlu(30), a(lena), c(m),lmax
       integer            indc(lena), indr(lena), ip(m), iq(n), lenr(m)
       integer            locc(n), locr(m)
 
@@ -423,9 +423,9 @@
       lrow   = luparm(25)
       small  = parmlu(3)
       uspace = parmlu(6)
-      kbegin = 1;
- 
-
+      kbegin = 1
+      lmax = 1
+     
       iw     = ip(nrank1)
       lenw   = lenr(iw)
       if (lenw   .eq.   0  ) go to 900
@@ -502,6 +502,7 @@
          indr(l) = iv
          indc(l) = iw
          lenL    = lenL + 1
+         if ( abs(amult) .gt. lmax) lmax = abs(amult)
 
          !--------------------------------------------------------------
          ! Add the appropriate multiple of row  iv  to row  iw.
@@ -542,6 +543,9 @@
                a(lw2)    = amult * a(lv0)
                indr(lw2) = jv
                locc(jv)  = lw2
+               if(lw2  .gt. lrow) then 
+                  lrow = lw2
+               end if
             end if
   350    continue
 
@@ -607,12 +611,13 @@
       ! End of main elimination loop.
       !=================================================================
 
-      ! Cancel markers on row iw.
-
+      ! Cancel markers on row iw. and delete the row from U
+      lenU = lenU - lenw
       lenr(iw) = 0
       do 620 l = lw1, lw2
          j       = indr(l)
          locc(j) = 0
+         indr(l) = 0
   620 continue
 
       !================================================================== 
@@ -645,7 +650,8 @@
   900 inform = 0
       luparm(17) = nrank1 - 1; 
       luparm(23) = lenL; 
-      luparm(24) = lenU; 
+      luparm(24) = lenU;
+      luparm(25) = lrow; 
       go to 950
 
  
@@ -674,200 +680,3 @@
 
       end 
 
-      subroutine lu9swp(m, n, a_r, a_c, s_r, s_c,
-     $                   annz, av, ai, aj,
-     $                   v1, c1, w1, v2, c2,w2, 
-     $                   lena,luparm, parmlu,
-     $                   a, indc, indr, 
-     $                   ip, iq, ap, aq, 
-     $                   lenc, lenr, locc, locr,
-     $                   inform )
-
-      integer            m, n, a_r, a_c, s_r, s_c
-      integer            annz,lena
-      integer            luparm(30)
-      double precision   parmlu(30),a(lena)
-      integer            ip(m), iq(n), ap(m), aq(n)
-      integer            lenr(m), lenc(n)
-      integer            indc(lena),indr(lena)
-      integer            locc(n), locr(m)
-      double precision   av(annz), v1(m), v2(m), w1(n), w2(n)
-      double precision   c1(m), c2(m)
-      integer            ai(annz), aj(annz), nrank              
-      integer t
-      double precision beta
-      nrank = luparm(16)
-      if (a_r .le. nrank) then
-         ! Compute w = A(i2,:) - A(i1,:) and change row indices
-         do k=1,annz
-            if (ai(k) .eq. nrank+s_r) then
-               t = aj(k)
-               w1(t) = av(k)
-            end if
-         end do
-
-         do k=1,annz
-            if (ai(k) .eq. a_r) then
-               t = aj(k)
-               w1(t) = w1(t) - av(k)
-            end if
-         end do
-
-         do k =1,annz
-            if (ai(k) .eq. nrank+s_r) then
-               ai(k) = a_r
-            else if (ai(k) .eq. a_r) then
-               ai(k) = nrank+s_r
-            end if
-         end do
-         ! Apply the rank one update
-         v1(1:m) = 0
-         v1(a_r) = 1
-         v1(nrank+s_r) = -1
-         c1 = v1
-         beta = 1.0
-         call  lu9mod( m, n, beta, c1, w1,lena,luparm, 
-     $                 parmlu, a, indc, indr, ip, iq,
-     $                 lenc, lenr, locc, locr,inform )
-         if( inform .eq. 7) go to 970
-         ! Modify ap permutation
-800      t = ap(a_r)
-         ap(a_r) = ap(nrank+s_r)
-         ap(nrank+s_r) = t 
-      end if
-      if (a_c .le.  nrank) then
-         ! Compute v = A(:,j2) - A(:,j1)
-         do k = 1,annz
-            if(aj(k) .eq. nrank+s_c) then
-               t = ai(k)
-               v2(t) = av(k)
-            end if
-         end do
-
-         do k = 1,annz
-            if(aj(k) .eq. a_c) then
-               t = ai(k)
-               v2(t) = v2(t) - av(k)
-            end if
-         end do
-
-         do k = 1,annz
-            if (aj(k) .eq. a_c) then
-               aj(k) = nrank+s_c
-            else if (aj(k) .eq. nrank+s_c) then
-               aj(k) = a_c
-            end if
-         end do
-         w2(1:n) = 0.0
-         w2(a_c) = 1.0
-         w2(nrank+s_c) = -1.0
-         c2 = v2
-         beta =  1.0
-         call  lu9mod( m, n, beta, c2, w2,lena,luparm, 
-     $                 parmlu, a, indc, indr, ip, iq,
-     $                 lenc,lenr, locc, locr,inform )
-         if(inform .eq. 7) go to 970
-
-         ! Modify aq permutation
-810      t = aq(a_c)
-         aq(a_c) = aq(nrank+s_c)
-         aq(nrank+s_c) = aq(a_c)
-      end if
-     
-      if (a_c .le. nrank) then
-         call lu9clr( m, n, lena, luparm, parmlu, 
-     $                a, indc, indr, ip, iq, lenr, 
-     $                locc, locr,v2, inform)
-         if (inform .eq. 7) go to 970
-         if (inform .eq. 8) go to 980
-      end if
-      
-      if (a_r .le. nrank) then
-         call lu9clr( m, n, lena, luparm, parmlu, 
-     $                a, indc, indr, ip, iq, lenr, 
-     $                locc, locr, v1, inform)
-         if (inform .eq. 7) go to 970
-         if (inform .eq. 8) go to 980
-      end if
-      go to 990
-      ! Not enough storage
-970   inform = 7
-
-      ! Singular U11 
-980   inform = 8
-
-990   return 
-      end
-
-      subroutine lu9maxs(m, n, nrank,lenlu, luparm, parmlu,
-     $               lua, luindc, luindr,lup, luq, 
-     $               lulenc, lulenr, lulocc, lulocr,
-     $               annz, av, ai, aj, u, uS, v, w,
-     $               s_r, s_c, alpha)
-    
-      integer            m, n, annz
-      double precision   u(20, m-nrank), uS(20,n-nrank)
-      double precision   parmlu(30), lua(lenlu),av(annz)
-      integer            luparm(30), lup(m), luq(n)
-      integer            ai(annz), aj(annz)
-      integer            lulenc(n),lulenr(m)
-      integer            lulocc(n),lulocr(m)
-      integer            luindc(lenlu), luindr(lenlu)
-      double precision   v(m), w(n), alpha
-      integer            s_r, s_c
-
-      integer c
-      integer r
-      double precision nmax, inorm
-      integer t
-      do 100 i = 1,20
-       
-          ! Compute u^T L21 U12 
-          v(1:nrank) = 0.0
-          v(nrank+1:m) = u(i,1:m-nrank)
-          call lu6mul(6, m, n, v, w, lenlu, luparm, parmlu,
-     $           lua, luindc, luindr, lup, luq, 
-     $           lulenc, lulenr, lulocc, lulocr)
-          uS(i,1:n-nrank) = uS(i,1:n-nrank) - w(nrank+1:n)     
-  100 continue
-
-      ! Find the column with maximum norm
-      s_c = 1
-      nmax = 0.0
-      do i = 1, n-nrank 
-         inorm = 0.0
-         do j =1,20
-            inorm = inorm + uS(j,i)**2       
-         end do
-         if (inorm .gt. nmax) then
-            nmax = inorm
-            s_c = i
-         end if
-      end do
-
-      
-      ! Compute column s_c of L21*U12
-      w(1:n) = 0.0
-      w(nrank+s_c) = 1.0
-      call lu6mul(5, m,n, v, w, lenlu, luparm, parmlu,
-     $            lua, luindc, luindr, lup, luq,
-     $            lulenc, lulenr, lulocc, lulocr)
-
-      ! Subtract w from column s_c of A
-      do k = 1,annz
-         if (aj(k) .eq. nrank+s_c) then 
-            t = ai(k)
-            v(t) = av(k) - v(t)
-         end if
-      end do
-      ! Find the maximum of the column
-      s_r = 1
-      nmax = 0
-      do k = nrank+1, m
-         if (abs(v(k)) > nmax) then
-            nmax = abs(v(k))
-            s_r = k-nrank
-            alpha = v(k)
-         end if
-      end do
-      end 
