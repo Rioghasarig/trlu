@@ -183,7 +183,8 @@
 
       double precision   lmax
       logical            cmprss, first, swap
-      
+      integer            ilast
+
       lmax   = parmlu(2)
       small  = parmlu(3)
       lfree  = lena - lenl
@@ -214,7 +215,8 @@
          minfre = n + 1
          nfree  = lfree - lrow
          if (nfree .ge. minfre) go to 200
-         call lu1rec( m, .true., luparm, lrow, lena, a,indr,lenr,locr )
+         call lu1rec( m, .true., luparm, lrow, ilast, 
+     $     lena, a,indr,lenr,locr )
          cmprss = .true.
          nfree  = lfree - lrow
          if (nfree .lt. minfre) go to 970

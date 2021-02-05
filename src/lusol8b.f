@@ -139,7 +139,8 @@
       minfre = n
       nfree  = lena - lenl - lrow
       if (nfree .ge. minfre) go to 100
-      call lu1rec( m, .true., luparm, lrow, lena, a, indr, lenr, locr )
+      call lu1rec( m, .true., luparm, lrow, ilast,
+     $             lena, a, indr, lenr, locr )
       nfree  = lena - lenl - lrow
       if (nfree .lt. minfre) go to 970
 
@@ -366,152 +367,6 @@
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-      subroutine lu8dlr( mode, m, n, idel, v, w,
-     $                   lena, luparm, parmlu,
-     $                   a, indc, indr, ip, iq,
-     $                   lenc, lenr, locc, locr,
-     $                   inform )
-
-      implicit           double precision (a-h,o-z)
-      integer            luparm(30)
-      double precision   parmlu(30), a(lena), v(m), w(n)
-      integer            indc(lena), indr(lena), ip(m), iq(n)
-      integer            lenc(n), lenr(m)
-      integer            locc(n), locr(m)
-
-!     ------------------------------------------------------------------
-!     lu8dlr  updates the LU factorization  A = L*U  when row  idel
-!     (the vector  w) is deleted from  A. The update is implemented as
-!     the rank-one modification
-!
-!           A(new)  =  A  -  e(idel) * w',
-!
-!     followed by a renumbering that makes row  idel  the last row of  A
-!     and shifts rows  idel + 1,  idel + 2,  ...,  m  one place up.
-!     Thus, row  idel  is replaced by the zero vector (rather than being
-!     deleted), and is then cyclically permuted to the bottom of  A.
-!     The dimensions of  A  do not alter, but  A  and  U  may become
-!     singular.
-!
-!     If  mode = 1,  the old row is assumed to be unknown.  It will be
-!                    computed from the LU factors of  A.
-!     If  mode = 2,  w(*)  must contain the old row.
-!
-!     v(*)  is a work array of length  m.
-!
-!     On entry, all elements of  locc  are assumed to be zero.
-!     On a successful exit (inform = 0), this will again be true.
-!
-!     Note --- significant overhead is involved in permuting row  idel
-!     to the bottom.  In some cases it may be better to use  lu8rpr  to
-!     replace row  idel  by zero, leaving it in the current position.
-!     The growth of nonzeros in  L  and  U  is identical, but less
-!     housekeeping is required than with  lu8dlr.
-!
-!
-!     On exit:
-!     inform = -1  if the rank of U decreased by 1.
-!     inform =  0  if the rank of U stayed the same.
-!     inform =  1  if the rank of U increased by 1.
-!     inform =  7  if the update was not completed (lack of storage).
-!
-!     -- Feb 1985: Last  F66 version.
-!     18 May 1988: First F77 version.
-!     ------------------------------------------------------------------
-
-      parameter        ( zero = 0.0d+0,  one = 1.0d+0 )
-
-      nout   = luparm(1)
-      lprint = luparm(2)
-      if (idel .lt. 1) go to 980
-      if (idel .gt. m) go to 980
-
-      if (mode .eq. 1) then
-
-         ! Compute row idel as the vector w = A(transpose) * e(idel).
-
-         do i = 1, m
-            v(i)  = zero
-         end do
-         v(idel) = one
-         call lu6mul( 6, m, n, v, w, lena, luparm, parmlu,
-     $                a, indc, indr, ip, iq, lenc, lenr, locc, locr )
-      end if
-
-      ! Set up the required vectors and do the rank-one mod
-      ! (but don't let lu8mod print anything).
-
-      do i = 1, m
-         v(i)  = zero
-      end do
-
-      v(idel)   =   one
-      beta      = - one
-      luparm(2) = - 1
-
-      call lu8mod( 1, m, n, beta, v, w,
-     $             lena, luparm, parmlu,
-     $             a, indc, indr, ip, iq, lenc, lenr, locc, locr,
-     $             inform )
-      if (inform .eq. 7) go to 970
-
-!     ------------------------------------------------------------------
-!     Permute the deleted row to the bottom.
-!     ------------------------------------------------------------------
-      if (idel .lt. m) then
-         call lu7cyc( idel, m, lenr )
-         call lu7cyc( idel, m, locr )
-
-         do 320 k = 1, m
-            i     = ip(k)
-            if (i .lt. idel) go to 320
-            ip(k) = i - 1
-            if (i .eq. idel) ip(k) = m
-  320    continue
-
-         lenl   = luparm(23)
-         l1     = lena + 1 - lenl
-
-         do 400 l = l1, lena
-            i       = indc(l)
-            if (i .lt. idel) go to 350
-            indc(l) = i - 1
-            if (i .eq. idel) indc(l) = m
-
-  350       i       = indr(l)
-            if (i .lt. idel) go to 400
-            indr(l) = i - 1
-            if (i .eq. idel) indr(l) = m
-  400    continue
-      end if
-
-      go to 990
-
-      ! Not enough storage.
-
-  970 inform = 7
-      if (nout. gt. 0  .and.  lprint .ge. 0)
-     &     write(nout, 1700) lena
-      go to 990
-
-      ! idel  is out of range.
-
-  980 inform = 8
-      if (nout. gt. 0  .and.  lprint .ge. 0)
-     &     write(nout, 1800) m, n, idel
-
-      ! Exit.
-
-  990 luparm(2)  = lprint
-      luparm(10) = inform
-      return
-
- 1700 format(/ ' lu8dlr  error...  Insufficient storage.',
-     $         '    lena =', i8)
- 1800 format(/ ' lu8dlr  error...  idel  is out of range.',
-     $         '    m =', i8, '    n =', i8, '    idel =', i8)
-
-      end ! subroutine lu8dlr
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -519,7 +374,7 @@
      $                   lena, luparm, parmlu,
      $                   a, indc, indr, ip, iq,
      $                   lenc, lenr, locc, locr,
-     $                   inform )
+     $                   lenlv, inform )
 
       implicit           double precision (a-h,o-z)
       integer            luparm(30)
@@ -527,7 +382,7 @@
       integer            indc(lena), indr(lena), ip(m), iq(n)
       integer            lenc(n), lenr(m)
       integer            locc(n), locr(m)
-
+      integer            lenlv(3)
 !     ------------------------------------------------------------------
 !     lu8mod  updates the LU factorization  A = L*U  when the
 !     m by n matrix  A  is subjected to a rank-one modification
@@ -556,7 +411,7 @@
 !     ------------------------------------------------------------------
 
       logical            singlr
-
+   
       nout   = luparm(1)
       lprint = luparm(2)
       nrank  = luparm(16)
@@ -566,7 +421,8 @@
       small  = parmlu(3)
       utol1  = parmlu(4)
       nrank0 = nrank
-
+      lenl0  = lenl
+      singlr = .FALSE.
       ! If necessary, solve  L*v(new) = v.
 
       if (mode .eq. 1) then
@@ -587,6 +443,7 @@
 
 !     ------------------------------------------------------------------
 !     Eliminate any nonzeros in  v  below the trapezoid.
+!     --- This shouldn't ever happen. REMEMBER TO ERASE THIS ------
 !     ------------------------------------------------------------------
   120 if (nrank .lt. m) then
          jelm   = 0
@@ -628,6 +485,8 @@
      $                inform )
          if (inform .ne. 0) go to 970
       end if
+      lenlv(1) = lenl - lenl0
+      lenl0 = lenl
 !     ------------------------------------------------------------------
 !     Pack the nonzeros of  w  in pivotal order in front of  L.
 !     (We will treat the packed  w  much like a normal row of  U.)
@@ -639,7 +498,8 @@
       minfre = n + 1 - kfirst
       nfree  = lfree - lrow
       if (nfree .ge. minfre) go to 310
-      call lu1rec( m, .true., luparm, lrow, lena, a, indr, lenr, locr )
+      call lu1rec( m, .true., luparm, lrow, ilast,
+     $             lena, a, indr, lenr, locr )
       nfree  = lfree - lrow
       if (nfree .lt. minfre) go to 970
 
@@ -677,7 +537,8 @@
          minfre = n
          nfree  = lfree - lrow
          if (nfree .ge. minfre) go to 420
-         call lu1rec( m, .true., luparm, lrow, lena, a,indr,lenr,locr )
+         call lu1rec(m, .true., luparm, lrow,
+     $               ilast, lena, a,indr,lenr, locr)
          nfree  = lfree - lrow
          if (nfree .lt. minfre) go to 970
 
@@ -699,7 +560,8 @@
          minfre = n
          nfree  = lfree - lrow
          if (nfree .ge. minfre) go to 500
-         call lu1rec( m, .true., luparm, lrow, lena, a,indr,lenr,locr )
+         call lu1rec( m, .true., luparm, lrow, ilast,
+     $                lena, a,indr,lenr,locr )
          nfree  = lfree - lrow
          if (nfree .lt. minfre) go to 970
 
@@ -722,7 +584,6 @@
 !     ------------------------------------------------------------------
 !     Apply a forward sweep to eliminate the nonzeros in row  iw.
 !     ------------------------------------------------------------------
-
       if (kfirst .gt. klast) then
          if (klast .lt. nrank) go to 900
       else
@@ -732,15 +593,63 @@
      $                a, indc, indr, ip, iq, lenr, locc, locr,
      $                inform, diag )
          if (inform .eq. 7) go to 970
+         lenlv(2) = lenl - lenl0
+         lenl0 = lenl
       end if
 
+!     ------------------------------------------------------------------
+!     Test for singularity in column klast (if klast .le. nrank).
+!     The code is similar to part of lu8rpc with klast in place of krep.
+!     ------------------------------------------------------------------
 
+      if (klast .le. nrank) then
+         diag   = zero
+         iw     = ip(klast)
+         singlr = lenr(iw) .eq. 0
+
+         if (.not. singlr) then
+            l1     = locr(iw)
+            j1     = indr(l1)
+            singlr = j1 .ne. jrep
+
+            if (.not. singlr) then
+               diag   = a(l1)
+               singlr = abs( diag ) .le. utol1
+            end if
+         end if
+
+         if ( singlr  .and.  klast .lt. nrank ) then
+
+            ! Perform cyclic permutations to move column klast
+            ! to the end and the corresponding row to position nrank.
+            ! Then eliminate the resulting row spike.
+
+            call lu7cyc( klast, nrank, ip )
+            call lu7cyc( klast, n    , iq )
+
+            call lu7for( m, n, klast, nrank,
+     $                   lena, luparm, parmlu,
+     $                   lenl, lenu, lrow,
+     $                   a, indc, indr, ip, iq, lenr, locc, locr,
+     $                   inform, diag )
+            lenlv(3) = lenl - lenl0
+            if (inform .eq. 7) go to 970
+         end if
+         ! Find the best column to be in position nrank.
+         ! If nothing satisfactory exists, nrank will be decreased.
+
+         jsing  = 0
+         call lu7rnk( m, n, jsing,
+     $                lena, luparm, parmlu,
+     $                lenl, lenu, lrow, nrank,
+     $                a, indc, indr, ip, iq, lenr, locc, locr,
+     $                inform, diag )
+      end if 
 !     ------------------------------------------------------------------
 !     Set inform for exit.
 !     ------------------------------------------------------------------
 
-  900 nrank = nrank0
-      if (nrank .eq. nrank0) then
+  900 if (nrank .eq. nrank0) then
          inform =  0
       else if (nrank .lt. nrank0) then
          inform = -1
@@ -776,6 +685,7 @@
      $                   lena, luparm, parmlu,
      $                   a, indc, indr, ip, iq,
      $                   lenc, lenr, locc, locr,
+     $                   lenlv, li, lj, lv, 
      $                   inform )
 
       implicit           double precision (a-h,o-z)
@@ -784,6 +694,8 @@
       integer            indc(lena), indr(lena), ip(m), iq(n)
       integer            lenc(n), lenr(m)
       integer            locc(n), locr(m)
+      integer            lenlv(3),li(3*m), lj(3*m)
+      double precision   lv(3*m)
 
 !     ------------------------------------------------------------------
 !     lu8rpr  updates the LU factorization  A = L*U  when row  irep
@@ -838,7 +750,9 @@
 !     ------------------------------------------------------------------
 
       parameter        ( zero = 0.0d+0,  one = 1.0d+0 )
-
+      
+      lenL0 = luparm(23)     
+      lenlv(1:3) = 0
       nout   = luparm(1)
       lprint = luparm(2)
       if (irep .lt. 1) go to 980
@@ -891,8 +805,15 @@
       call lu8mod( 1, m, n, beta, v, w,
      $             lena, luparm, parmlu,
      $             a, indc, indr, ip, iq, lenc, lenr, locc, locr,
-     $             inform )
+     $             lenlv, inform )
       if (inform .eq. 7) go to 970
+
+      lenlv_total = lenlv(1) + lenlv(2) + lenlv(3)
+      do j =1, lenlv_total
+         li(j) = indc(lena-lenL0-j+1)
+         lj(j) = indr(lena-lenL0-j+1)
+         lv(j) = a(lena-lenL0-j+1)
+      end do
       go to 990
 
       ! Not enough storage.
@@ -921,100 +842,3 @@
 
       end ! subroutine lu8rpr
 
-      subroutine lu9rpc( mode1, mode2, m, n, irep, v, w, vnew,
-     $                   lena, luparm, parmlu,
-     $                   a, indc, indr, ip, iq,
-     $                   lenc, lenr, locc, locr,
-     $                   inform )
-
-      implicit           double precision (a-h,o-z)
-      integer            luparm(30)
-      double precision   parmlu(30), a(lena), v(m), w(n), vnew(m)
-      integer            indc(lena), indr(lena), ip(m), iq(n)
-      integer            lenc(n), lenr(m)
-      integer            locc(n), locr(m)
-      
-      parameter        ( zero = 0.0d+0,  one = 1.0d+0 )
-
-      nout   = luparm(1)
-      lprint = luparm(2)
-      if (irep .lt. 1) go to 980
-      if (irep .gt. m) go to 980
-
-      if (mode1 .eq. 0) then
-
-         ! The old column  irep  is zero.
-
-         do i = 1, m
-            v(i) = zero
-         end do
-      else if (mode1 .eq. 1) then
-
-         ! Compute column irep as the vector  v  =  A* e(irep).
-
-         do j = 1, n
-            w(j)  = zero
-         end do
-         w(irep) = one
-         call lu6mul( 5, m, n, v, w, lena, luparm, parmlu,
-     $                a, indc, indr, ip, iq, lenc, lenr, locc, locr )
-      end if
-
-      if (mode1 .le. 2) then
-
-         ! Compute the difference except if  wnew = 0.
-
-         if (mode2 .gt. 0) then
-            do j = 1, m
-               v(j)  = v(j) - vnew(j)
-            end do
-         end if
-      end if
-
-!     ------------------------------------------------------------------
-!     Set  v = a unit vector  and do the rank-one modification
-!     (but don't let lu8mod print anything).
-!     ------------------------------------------------------------------
-
-      do i = 1, n
-         w(i)  = zero
-      end do
-
-      w(irep)   =   one
-      beta      = - one
-      if (mode1 .eq. 4) beta = one
-      luparm(2) = - 1
-
-      call lu8mod( 1, m, n, beta, v,w,
-     $             lena, luparm, parmlu,
-     $             a, indc, indr, ip, iq, lenc, lenr, locc, locr,
-     $             inform )
-      if (inform .eq. 7) go to 970
-      go to 990
-
-      ! Not enough storage.
-
-  970 inform = 7
-      if (nout. gt. 0  .and.  lprint .ge. 0)
-     &     write(nout, 1700) lena
-      go to 990
-
-      ! irep  is out of range.
-
-  980 inform = 8
-      if (nout. gt. 0  .and.  lprint .ge. 0)
-     &     write(nout, 1800) m, n, irep
-
-      ! Exit.
-
-  990 luparm(2)  = lprint
-      luparm(10) = inform
-      return
-
- 1700 format(/ ' lu8rpr  error...  Insufficient storage.',
-     $         '    lena =', i8)
- 1800 format(/ ' lu8rpr  error...  irep  is out of range.',
-     $         '    m =', i8, '    n =', i8, '    irep =', i8)
-
-      end ! subroutine lu9rpc
-   

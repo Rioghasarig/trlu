@@ -69,6 +69,10 @@ void clu8rpc(
   int64_t* lenr,
   int64_t* locc,
   int64_t* locr,
+  double* lv, 
+  int64_t* li,
+  int64_t* lj,
+  int64_t* lenlv,
   int64_t* inform,
   double* diag,
   double* vnorm);
@@ -151,26 +155,6 @@ void clu8dlc(
   int64_t* locr,
   int64_t* inform);
 
-void clu8dlr(
-  int64_t* mode,
-  int64_t* m,
-  int64_t* n,
-  int64_t* idel,
-  double* v,
-  double* w,
-  int64_t* lena,
-  int64_t* luparm,
-  double* parmlu,
-  double* a,
-  int64_t* indc,
-  int64_t* indr,
-  int64_t* p,
-  int64_t* q,
-  int64_t* lenc,
-  int64_t* lenr,
-  int64_t* locc,
-  int64_t* locr,
-  int64_t* inform);
 
 void clu9diagu(
   int64_t* m,
@@ -228,30 +212,12 @@ void clu8rpr(
   int64_t* lenr,
   int64_t* locc,
   int64_t* locr,
+  int64_t* lenlv,
+  int64_t* li,
+  int64_t* lj,
+  double* lv, 
   int64_t* inform);
 
-void clu9rpc(
-  int64_t* mode1,
-  int64_t* mode2,
-  int64_t* m,
-  int64_t* n,
-  int64_t* irep,
-  double* v,
-  double* w,
-  double* wnew,
-  int64_t* lena,
-  int64_t* luparm,
-  double* parmlu,
-  double* a,
-  int64_t* indc,
-  int64_t* indr,
-  int64_t* p,
-  int64_t* q,
-  int64_t* lenc,
-  int64_t* lenr,
-  int64_t* locc,
-  int64_t* locr,
-  int64_t* inform);
 
 void clu9clr(
   int64_t* m,

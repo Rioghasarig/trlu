@@ -25,7 +25,7 @@ rng(5);
 nswaps = 0;
 for i = 1:swaps
     fprintf('Swap: %d\n', i); 
-    [alpha, s_r, s_c] = mylu1.maxS2(); 
+    [alpha, s_r, s_c] = mylu1.maxS(); 
     [beta, a_r, a_c] = mylu1.maxA11inv(alpha,s_r, s_c);
     
     fprintf('alpha*beta: %.15f\n', abs(alpha*beta));
@@ -42,13 +42,24 @@ end
 rng(5);    
 for i = 1:swaps
     fprintf('Swap: %d\n', i); 
-    [alpha, s_r, s_c] = mylu2.maxS2(); 
+    [alpha, s_r, s_c] = mylu2.maxS(); 
     [beta, a_r, a_c] = mylu2.maxA11inv(alpha,s_r, s_c);
+
+    L = mylu2.mulL(eye(584));
+    U = mylu2.getU();
+    E = mylu.A - L*U;
+    S = mylu.A(nrank+1:end,nrank+1:end) - mylu.mulA22(eye(n-nrank));
+    alphaT = max(max(abs(S)));
+    A11 = full(mylu.A([1:nrank, nrank+s_r], [1:nrank, nrank+s_c]));
+    betaT = max(max(abs(A11^-1)));   
     
-    fprintf('alpha*beta: %.15f\n', abs(alpha*beta));
+    
+    fprintf('alpha, alphaT: %.5f , %.5f\n', alpha, alphaT);
+    fprintf('beta, betaT: %.5 , %.5f\n', beta, betaT); 
     if abs(alpha*beta) < f
        break
-    end            
+    end      
+
     mylu2.swapFac(a_r,a_c,s_r,s_c);
 end
 

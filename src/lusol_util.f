@@ -3809,7 +3809,7 @@
       ! 20 Dec 2015: Return ilast itself instead of ind(ltop + 1).
 
       ltop        = k
-    ! ind(ltop+1) = ilast
+      ! ind(ltop+1) = ilast
       return
 
  1000 format(' lu1rec.  File compressed from', i10, '   to', i10, l3,
@@ -6203,6 +6203,7 @@
      $                   lena, luparm, parmlu,
      $                   a, indc, indr, ip, iq,
      $                   lenc, lenr, locc, locr,
+     $                   lv, li, lj, lenlv,
      $                   inform, diag, vnorm )
 
       implicit           double precision(a-h,o-z)
@@ -6211,6 +6212,9 @@
       integer            indc(lena), indr(lena), ip(m), iq(n)
       integer            lenc(n), lenr(m)
       integer            locc(n), locr(m)
+      integer            li(3*m), lj(3*m)
+      double precision   lv(3*m)
+      integer            lenlv(3)
 
       !-----------------------------------------------------------------
       ! lu8rpc  updates the LU factorization  A = L*U  when column  jrep
@@ -6268,6 +6272,9 @@
       nrank0 = nrank
       diag   = zero
       vnorm  = zero
+      
+      lenL0 = lenL
+      lenlv(1:2) = 0
       if (jrep .lt. 1) go to 980
       if (jrep .gt. n) go to 980
 
@@ -6411,7 +6418,13 @@
      $                inform, diag )
          if (inform .eq. 7) go to 970
          krep   = klast
-
+         lenlv(1) = lenL - lenL0 
+         do k = 1, lenlv(1)
+            lv(k) = a(lena - lenL0 - k + 1)
+            li(k) = indc(lena - lenL0 - k + 1)
+            lj(k) = indr(lena -lenL0 - k + 1)
+         end do
+         lenL0 = lenL
          ! Test for instability (diag much bigger than vnorm).
 
          singlr = vnorm .lt. Utol2 * abs( diag )
@@ -6450,6 +6463,14 @@
      $                lenL, lenU, lrow,
      $                a, indc, indr, ip, iq, lenr, locc, locr,
      $                inform, diag )
+
+         lenlv(2) = lenL - lenL0
+         do k = 1, lenlv(2)
+            lv(lenlv(1)+k) = a(lena - lenL0 - k + 1)
+            li(lenlv(1)+k) = indc(lena - lenL0 - k + 1)
+            lj(lenlv(1)+k) = indr(lena -lenL0 - k + 1)
+         end do
+
          if (inform .eq. 7) go to 970
       end if
 

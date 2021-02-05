@@ -6,11 +6,9 @@
     clu8adc;
     clu8adr;
     clu8dlc;
-    clu8dlr;
     clu9mod;
     clu8rpc;
     clu8rpr;
-    clu9rpc;
     clu9clr;
     clu1or2;
     clu9diagu;

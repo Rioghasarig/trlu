@@ -136,10 +136,23 @@ classdef lusol_obj < handle
     int_ptr_class = 'int64Ptr'; % integer class for libpointers
     
     A = [];
-    Minv = []; 
-    L = []; 
-    U = [];
-
+    L21 = [];
+    U12 = [];
+    
+    L11 = [];
+    U11 = []; 
+    
+    lenlv_ptr = 0;
+    li_ptr = 0;
+    lj_ptr = 0;
+    lv_ptr = 0;
+    
+    m = 0;
+    n = 0;
+    nrank = 0;
+    
+    L = [];
+    U = []; 
   end
 
   methods (Static)
@@ -390,8 +403,9 @@ classdef lusol_obj < handle
       % get information about A
       m = size(A,1);
       n = size(A,2);
+      obj.m = m;
+      obj.n = n;
       nelem = nnz(A);
-      obj.Minv = speye(m); 
 
       % set storage sizes
      
@@ -427,12 +441,10 @@ classdef lusol_obj < handle
       iploc = zeros(n,1);
       iqinv = zeros(n,1);
 
-
+      li = zeros(3*rank_,1);
+      lj = zeros(3*rank_,1);
+      lv = zeros(3*rank_,1);
       
-      omega = zeros(20,m-rank_);
-      uS = zeros(20, n-rank_); 
-      
-
       %-- allocate and initialize libpointer "arrays" --%
       % integer scalars
       obj.m_ptr = libpointer(obj.int_ptr_class,m);
@@ -466,10 +478,12 @@ classdef lusol_obj < handle
       obj.iploc_ptr = libpointer(obj.int_ptr_class,iploc);
       obj.iqinv_ptr = libpointer(obj.int_ptr_class,iqinv);
 
-      obj.u_ptr = libpointer('doublePtr', omega); 
-      obj.uS_ptr = libpointer('doublePtr', uS); 
-      
 
+      obj.lenlv_ptr = libpointer(obj.int_ptr_class, [0,0,0]);
+      obj.li_ptr = libpointer(obj.int_ptr_class, li);
+      obj.lj_ptr = libpointer(obj.int_ptr_class, lj);
+      obj.lv_ptr = libpointer('doublePtr', lv);
+      
 
     end
 
@@ -744,20 +758,84 @@ classdef lusol_obj < handle
 
       % factorize the matrix
       obj.factorize(A,varargin{:});
-    
+      
+      nrank = obj.stats.nrank;
+      obj.nrank = nrank;
       obj.ap = obj.ap_ptr.Value;
       obj.aq = obj.aq_ptr.Value;
-      obj.L = obj.L0();
-      obj.A = obj.A(obj.ap,obj.aq);
-            
-      [ai,aj,av] = find(A(obj.ap,obj.aq)); 
-      annz = size(av,1); 
-     
       
-      obj.av_ptr = libpointer('doublePtr', av);
-      obj.ai_ptr = libpointer(obj.int_ptr_class, ai);
-      obj.aj_ptr = libpointer(obj.int_ptr_class, aj); 
-      obj.annz_ptr = libpointer(obj.int_ptr_class, annz); 
+      % Extract matrices
+      obj.A = obj.A(obj.ap,obj.aq);
+      L = obj.L0();
+      obj.L21 = L(nrank+1:end,1:nrank); 
+      U = obj.getU();
+      obj.U12 = U(1:nrank,nrank+1:end);
+      
+      nzmax = 100000;
+      a = zeros(nzmax,1);
+      indc = zeros(nzmax,1);
+      indr = zeros(nzmax,1); 
+      lena = length(a);   
+      luparm = obj.luparm_ptr.Value;
+      
+      % Resize factorization
+      m = nrank;
+      n = nrank; 
+      p = 1:nrank;
+      q = 1:nrank;
+      
+      %Set U data
+      U11 = U(1:nrank,1:nrank); 
+      [uj,~,uv] = find(U11'); 
+      lenu = length(uv); 
+
+      
+      a(1:lenu) = uv;
+      indr(1:lenu) = uj;          
+      lenr = full(sum(U11 ~= 0,2))';
+      locr = cumsum([1,lenr(1:nrank-1)]);
+      
+            
+      luparm(22) = lenu; % set lenU0 to lenu
+      luparm(24) = lenu; % set lenU to lenu
+      luparm(25) = lenu; % set lrow to lenU
+      %Set L data
+
+      L11 = L(1:nrank,1:nrank);
+      obj.L11 = L11;
+      L11 = L11 - eye(nrank);
+      [i,j,v] = find(L11); 
+      lenl = length(v);
+      
+
+      a(lena-lenl+1:end) = flip(-v);
+      indc(lena-lenl+1:end) = flip(i);
+      indr(lena-lenl+1:end) = flip(j);
+      
+      luparm(20) = 0; % set numL0 to 0
+      luparm(21) = 0; % set lenL0 to 0
+      luparm(23) = lenl;
+      
+      % Set pointers
+      obj.m_ptr = libpointer(obj.int_ptr_class, m); 
+      obj.n_ptr = libpointer(obj.int_ptr_class, n);
+
+      obj.p_ptr = libpointer(obj.int_ptr_class,p); 
+      obj.q_ptr = libpointer(obj.int_ptr_class,q);
+      
+      
+      obj.a_ptr = libpointer('doublePtr',a);
+      obj.indc_ptr = libpointer(obj.int_ptr_class,indc);
+      obj.indr_ptr = libpointer(obj.int_ptr_class,indr);
+      
+      obj.locr_ptr = libpointer(obj.int_ptr_class, locr);
+      obj.lenr_ptr = libpointer(obj.int_ptr_class, lenr);      
+
+      obj.luparm_ptr = libpointer(obj.int_ptr_class,luparm); 
+      obj.nzmax_ptr = libpointer(obj.int_ptr_class,nzmax); 
+
+
+
 
     end
 
@@ -1055,7 +1133,12 @@ classdef lusol_obj < handle
         nrank = obj.stats.nrank;
         A11 = obj.A(1:nrank,1:nrank);
     end
-    function [U] = getU(obj)
+    function [L] = Lfull(obj)
+       nrank = obj.stats.nrank;
+       L11 = obj.mulL(eye(nrank));
+       L = [L11; obj.L21]; 
+    end
+    function [U11] = getU(obj)
       %U  get the upper triangular factor U
       %
       % Extract the U factor from LUSOL data and return as a Matlab sparse
@@ -1126,7 +1209,7 @@ classdef lusol_obj < handle
         k1 = k1+len;
       end
       % generate sparse matrix
-      U = sparse(ui,uj,ua,m,n);
+      U11 = sparse(ui,uj,ua,m,n);
     end
     
 
@@ -1192,167 +1275,251 @@ classdef lusol_obj < handle
       L0 = sparse(li,lj,la);
     end
     
-    function [inform, c] = swapRows(obj, i1,i2)
-        [m, ~] = obj.size();
-        %% Get Rows i1 and i2 of A(p,q) and find their difference
+    function swapRows2(obj, i1, i2)
+       nrank = obj.nrank;
+       [m,n] = obj.size;
+       
+       obj.L([i2, nrank+1],:) = obj.L([nrank+1,i2]);
+       obj.ap([i2, nrank+1],:) = obj.ap([nrank+1,i2]);
+       
+       a22 = obj.A(obj.ap(nrank+1),obj.aq(nrank+1:end));
+       lu22 = obj.L(nrank+1,1:nrank)*obj.U(1:nrank,nrank+1:end);
+       obj.U(nrank+1,nrank+1:end) = a22 - lu22;
+       
+       per = [i1+1:nrank+1,i1];
+
+       
+       obj.L(i1:nrank+1,:) = obj.L(per,:);
+       obj.ap(i1:nrank+1,:)  = obj.ap(per,:);
+       
+%        for i = i1:nrank
+%            x = obj.L(i,i);
+%            c = obj.U(i,i+1);
+%            d = obj.U(i+1,i+1);
+% 
+%            if x == 0 || (abs(x) < 0.01 && 1/sqrt(abs(x))>(c^2+d^2)/(c*x+d)^2)
+%                M = [x,1;d/(c*x+d),-c/(c*x+d)];
+%                obj.U(:,[i,i+1]) = obj.U(:,[i+1,i]); 
+%                obj.aq([i,i+1]) = obj.aq([i+1,i]);
+%            else
+%                M = [x,1;0,sqrt(x^2+1)];
+%            end
+%            
+        
+    end
+    function [inform,d,w1,lr] = swapRows(obj, i1,i2)
+        [nrank, ~] = obj.size();
+        m = size(obj.A,1); 
         r1 = obj.A(i1,:)';
-        r2 = obj.A(i2,:)'; 
-        w = r2 - r1; 
-        v = zeros(m,1); 
-        v(i1) = 1;
-        v(i2) = -1; 
-        [inform, c] = obj.r1mod(v,w); 
-        obj.A([i1, i2], :) = obj.A([i2,i1],:); 
-        obj.ap([i1 i2]) =  obj.ap([i2 i1]); 
+        r2 = obj.A(nrank+i2,:)'; 
+        
+        w1 = lusol_obj.vector_process(r2(1:nrank)-r1(1:nrank),nrank);
+        v_ptr = libpointer('doublePtr', zeros(nrank,1));
+        w_ptr = libpointer('doublePtr', w1);    
+        wnew_ptr = libpointer('doublePtr', zeros(nrank,1));
+        
+        mode1_ptr = libpointer(obj.int_ptr_class, 4);
+        mode2_ptr = libpointer(obj.int_ptr_class, 0);
+        irep_ptr = libpointer(obj.int_ptr_class, i1);
+        inform_ptr = libpointer(obj.int_ptr_class,0);
+        
+        calllib('libclusol', 'clu8rpr', ...
+            mode1_ptr, ...
+            mode2_ptr, ...
+            obj.m_ptr, ...
+            obj.n_ptr, ...
+            irep_ptr, ...
+            v_ptr, ...
+            w_ptr, ...
+            wnew_ptr, ...
+            obj.nzmax_ptr, ...
+            obj.luparm_ptr, ...
+            obj.parmlu_ptr, ...
+            obj.a_ptr, ...
+            obj.indc_ptr, ...
+            obj.indr_ptr, ...
+            obj.p_ptr, ...
+            obj.q_ptr, ...
+            obj.lenc_ptr, ...
+            obj.lenr_ptr, ...
+            obj.locc_ptr, ...
+            obj.locr_ptr, ...
+            obj.lenlv_ptr, ...
+            obj.li_ptr, ...
+            obj.lj_ptr, ...
+            obj.lv_ptr, ...
+            inform_ptr);
+        
+        inform = inform_ptr.value;
+        if( inform == 7)
+            error('lusol:swapRows', 'Insufficient Storage');
+        end        
+       
+        c = v_ptr.value;
+        ei = ((1:m-nrank) == i2)'; 
+        d = -obj.L21*c - ei;
+        w2 = r2(nrank+1:end) - r1(nrank+1:end);
+        obj.U12 = obj.U12 + c*w2'; 
+        
+        lenlv = obj.lenlv_ptr.value; 
+        li = double(obj.li_ptr.value);
+        lj = double(obj.lj_ptr.value);
+        lv = obj.lv_ptr.value;
+        lvtotal = sum(lenlv);
+        lr = lvtotal;
+        for i=1:lvtotal
+            obj.L11(:,lj(i)) = ...
+                obj.L11(:,lj(i)) - lv(i)*obj.L11(:,li(i));
+            
+            obj.L21(:,lj(i)) = ...
+                obj.L21(:,lj(i)) - lv(i)*obj.L21(:,li(i));
+
+            obj.U12(li(i),:) = ... 
+                    obj.U12(li(i),:) + lv(i)*obj.U12(lj(i),:); 
+
+        end
+          
+        obj.A([i1, nrank+i2], :) = obj.A([nrank+i2,i1],:);        
+        obj.ap([i1, nrank+i2]) =  obj.ap([nrank+i2, i1]); 
     end
     
-    function [inform, c] = swapCols(obj, j1,j2)
-        [~, n] = obj.size(); 
+    function [inform, s, ej,lc] = swapCols(obj, j1,j2)
+        % Swap column j1 with column nrank+j2
+        [~, nrank] = obj.size(); 
         c1 = obj.A(:,j1);
-        c2 = obj.A(:,j2); 
-        v = c2 - c1; 
+        c2 = obj.A(:,nrank+j2); 
         
-        w = zeros(n,1);
-        w(j1) = 1;
-        w(j2) = -1; 
-        [inform, c] = obj.r1mod(v,w); 
-        obj.A(:,[j1 j2]) = obj.A(:, [j2 j1]); 
-        obj.aq([j1 j2]) = obj.aq([j2 j1]); 
+        % First insert column c1 into position j2
+        u = obj.solveL(c1(1:nrank));
+        obj.U12(:,j2) = u; 
+        
+        v = lusol_obj.vector_process(c2(1:nrank),nrank);
+        v_ptr = libpointer('doublePtr', v);
+        w_ptr = libpointer('doublePtr', zeros(nrank,1));
+        
+        mode1_ptr = libpointer(obj.int_ptr_class,1);
+        mode2_ptr = libpointer(obj.int_ptr_class,1);
+        jrep_ptr = libpointer(obj.int_ptr_class,j1);
+        inform_ptr = libpointer(obj.int_ptr_class,0);
+        diag_ptr = libpointer('doublePtr', 0);
+        vnorm_ptr = libpointer('doublePtr', 0); 
+        
+        lenLi = obj.stats.lenL;
+        calllib('libclusol', 'clu8rpc', ...
+            mode1_ptr, ...
+            mode2_ptr, ...
+            obj.m_ptr, ...
+            obj.n_ptr, ...
+            jrep_ptr, ...
+            v_ptr, ...
+            w_ptr, ...
+            obj.nzmax_ptr, ...
+            obj.luparm_ptr, ...
+            obj.parmlu_ptr, ...
+            obj.a_ptr, ...
+            obj.indc_ptr, ...
+            obj.indr_ptr, ...
+            obj.p_ptr, ...
+            obj.q_ptr, ...
+            obj.lenc_ptr, ...
+            obj.lenr_ptr, ...
+            obj.locc_ptr, ...    
+            obj.locr_ptr, ...
+            obj.lv_ptr, ...
+            obj.li_ptr, ...
+            obj.lj_ptr, ...
+            obj.lenlv_ptr, ...
+            inform_ptr, ...
+            diag_ptr, ...
+            vnorm_ptr);
+        inform = inform_ptr.value;
+        if( inform == 7)
+            error('lusol:swapCols', 'Insufficient Storage');
+        end        
+       
+        
+        lenlv = obj.lenlv_ptr.value; 
+        li = double(obj.li_ptr.value);
+        lj = double(obj.lj_ptr.value);
+        lv = obj.lv_ptr.value;
+        
+        lvtotal = sum(lenlv(1:2));  
+        lc = lvtotal;
+        lenLf = obj.stats.lenL;
+        if lenLf - lenLi ~= lvtotal
+            error('lusol:swapCols', 'Invalid L update');
+        end
+        
+        for i=1:lvtotal
+            obj.L11(:,lj(i)) = ...
+                obj.L11(:,lj(i)) - lv(i)*obj.L11(:,li(i));
+            
+            obj.L21(:,lj(i)) = ...
+                obj.L21(:,lj(i)) - lv(i)*obj.L21(:,li(i));
+            
+            obj.U12(li(i),:) = ... 
+                obj.U12(li(i),:) + lv(i)*obj.U12(lj(i),:); 
+        end
+        obj.A(:,[j1 nrank+j2]) = obj.A(:, [nrank+j2 j1]); 
+        obj.aq([j1 nrank+j2]) = obj.aq([nrank+j2 j1]);        
+
+       
+        ej = ((1:nrank) == j1)';
+        s = c2(nrank+1:end) - obj.L21*obj.mulU(ej); 
     end
     
-    function [lmaxr,lmaxc] = swapFac(obj, a_r, a_c, s_r, s_c)
-        nrank = obj.stats.nrank; 
-        lmaxr = 1;
-        lmaxc = 1; 
-        if a_r ~= nrank+1
-            [inform1, c1] = obj.swapRows(a_r, nrank+s_r);
-        end
-        
-        if a_c ~=nrank+1
-            [inform2, c2] = obj.swapCols(a_c, nrank+s_c); 
-        end
- 
-        % Clear extra rows
-        if a_c ~=nrank+1
-            [inform,lmaxc] = obj.luclear(c2);
-            switch inform
-                case 0
-                    
-                case 7
-                    err = MException('lusol:luclear',...
-                                     'Not enough space in the row file'); 
-                    throw(err);                   
-                case 8
-                    err = MException('lusol:luclear',...
-                                     'Singular U11');
-                    throw(err);   
-                otherwise
-                    err = MException('lusol:luclear',...
-                                     'Unrecognized error code');
-                    throw(err);
-            end
-                    
-        end
-        
-        if a_r ~= nrank+1
-            [inform,lmaxr] = obj.luclear(c1);
-            switch inform
-                case 0
-                    
-                case 7
-                    err = MException('lusol:luclear',...
-                                     'Not enough space in the row file'); 
-                    throw(err);                   
-                case 8
-                    err = MException('lusol:luclear',...
-                                     'Singular U11');
-                    throw(err);   
-                otherwise
-                    err = MException('lusol:luclear',...
-                                     'Unrecognized error code');
-                    throw(err);
-            end 
+    function [lr, lc] = swapFac(obj, a_r, a_c, s_r, s_c)
+        [nrank, ~] = obj.size;
+        m = size(obj.A,1); 
+        lr = 0;
+        lc = 0;
+        if a_c <= nrank
+            [inform, s, ej,lc] = obj.swapCols(a_c, s_c);
+
+
         end
 
-    end
-    
-    function [alpha, s_r, s_c] = maxS2(obj)
-        [m,n] = obj.size();
-        nrank = obj.stats.nrank;
-        Omega = randn(20, m-nrank);
-        A22 = obj.A(nrank+1:end,nrank+1:end);
+        if a_r <= nrank
+            [inform,d, w1, lr] = obj.swapRows(a_r, s_r);
+        end
+
         
-        OLU = obj.mulA22t(Omega')';
-        S = Omega*A22 - OLU;
-        [~, s_c] = max(sqrt(sum(S.^2)));
+        if(obj.stats.nrank ~= nrank || inform == 2)
+           error('lusol:swapFac', 'Singular U11');
+        end
         
-        e = double((1:n-nrank)' == (s_c));
-        LUe = obj.mulA22(e); 
-        max_col = A22(:,s_c) - LUe; 
-        [~, s_r] = max(abs(max_col));
-        alpha = max_col(s_r);
-  
+        if a_c <= nrank
+            l = obj.solveUt(ej);
+            obj.L21 = obj.L21 + s*l'; 
+        end
+        
+        if a_r <= nrank
+            l2 = obj.solveUt(w1); 
+            obj.L21 = obj.L21 + d*l2';
+        end
+        % Find the correct values of U12 and L21
+      %  obj.U12 = obj.solveL(obj.A(1:nrank,nrank+1:end));
+      %  obj.L21 = obj.solveUt(obj.A(nrank+1:end,1:nrank)')';
+
     end
     
     function [alpha, s_r, s_c] = maxS(obj)
-       % Estimates the maximum of the Schur complement. 
-       [m,n] = obj.size(); 
-       nrank = obj.stats.nrank; 
-
-       Omega = randn(20, m-nrank); 
-
-       ai = double(obj.ai_ptr.Value);
-       aj = double(obj.aj_ptr.Value);
-       av = obj.av_ptr.Value;
-       A_ = sparse(ai,aj,av, m, n); 
-       A22 = A_(nrank+1:end,nrank+1:end); 
+        [m,~] = size(obj.A);
+        nrank = obj.nrank;
+        Omega = randn(20, m-nrank);
+        A22 = obj.A(nrank+1:end,nrank+1:end);
+        
+        OLU = (Omega*obj.L21)*obj.U12;
+        S = Omega*A22 - OLU;
+        [~, s_c] = max(sqrt(sum(S.^2)));
+        
+        max_col = A22(:,s_c) - obj.L21*obj.U12(:,s_c);
+        [~, s_r] = max(abs(max_col));
+        alpha = full(max_col(s_r));
   
-       S = Omega*A22; 
-
-       obj.u_ptr.Value = Omega; 
-       obj.uS_ptr.Value = S; 
-       nrank_ptr = libpointer(obj.int_ptr_class,nrank);
-        
-       v = zeros(m,1);
-       w = zeros(n,1); 
-       v_ptr = libpointer('doublePtr', v); 
-       w_ptr = libpointer('doublePtr', w); 
-       sr_ptr = libpointer(obj.int_ptr_class, 0);
-       sc_ptr = libpointer(obj.int_ptr_class, 0); 
-       alpha_ptr = libpointer('doublePtr', 0); 
-        
-       calllib('libclusol', 'clu9maxs',...
-          obj.m_ptr,...
-          obj.n_ptr,...
-          nrank_ptr, ...
-          obj.nzmax_ptr,...
-          obj.luparm_ptr,...
-          obj.parmlu_ptr,...
-          obj.a_ptr, ...
-          obj.indc_ptr,...
-          obj.indr_ptr,...
-          obj.p_ptr,...
-          obj.q_ptr,...
-          obj.lenc_ptr,...
-          obj.lenr_ptr,...
-          obj.locc_ptr,...
-          obj.locr_ptr,...
-          obj.annz_ptr,...
-          obj.av_ptr,...
-          obj.ai_ptr,...
-          obj.aj_ptr,...
-          obj.u_ptr,...
-          obj.uS_ptr,...
-          v_ptr,...
-          w_ptr,...
-          sr_ptr,...
-          sc_ptr,...
-          alpha_ptr);
-        s_r = sr_ptr.Value;
-        s_c = sc_ptr.Value;
-        alpha = alpha_ptr.Value; 
     end
-   
+    
+
     
     function [beta, a_r, a_c] = maxA11inv(obj,alpha, s_r,s_c)
         %% Estimates the maximum entry of A11^-1 where A11 is the matrix 
@@ -1361,41 +1528,40 @@ classdef lusol_obj < handle
        
         %% Compute the factorization A11 = L11*U11 
         % L11 = [L  , 0]    U11 = [U,   u12]
-        %       [l21, 1]          [0, alpha]
+        %       [l21', 1]          [0, alpha]
         % L and U are the nrank x nrank submatrix of the 
         % current truncated LU factorization
-        [m,n] = obj.size;
+        [m,n] = size(obj.A);
         nrank = obj.stats.nrank; 
-        e = double(1:(m-nrank)== s_r)';
-        l21 = obj.mulL21t(e);
-        e = double(1:(n-nrank) == s_c)';
-        u12 = obj.mulU12(e); 
+        l21 = obj.L21(s_r,:)';
+        u12 = obj.U12(:,s_c); 
 
-        %% Compute Omega*A11^-1        
+        %% Compute B =  Omega*A11^-1
+        % [v1,v2] = [Omega1,Omega2]*U11^-1
         Omega1 = randn(20,nrank); 
         Omega2 = randn(20,1); 
-        v1 = obj.solveU11t(Omega1');
+        v1 = obj.solveUt(Omega1');
         v2 = 1/alpha*(Omega2' - u12'*v1)'; 
         
         %B = ([v1',v2])/L11;
         B2 = v2;
-        B1 = obj.solveL11t(v1-l21*v2'); 
+        B1 = obj.solveLt(v1-l21*v2'); 
         B = [B1', B2];
         
         %% Find maximum element
         [~,a_r] = max(sqrt(sum(B.^2)));
-        max_col = zeros(nrank+1,1);
-        max_col(a_r,1) = 1;
+        e_mcol = zeros(nrank+1,1);
+        e_mcol(a_r,1) = 1;
        
         %u = L11\max_col;
-        u1 = obj.solveL11(max_col(1:nrank)); 
-        u2 = max_col(nrank+1) - l21'*u1; 
+        u1 = obj.solveL(e_mcol(1:nrank)); 
+        u2 = e_mcol(nrank+1) - l21'*u1; 
         u = [u1 ; u2]; 
         v2 = u(nrank+1)/alpha;
-        v1 = obj.solveU11(u(1:nrank) - v2*u12); 
-        col_invA11pq = [v1 ; v2];
-        [~,a_c] = max(abs(col_invA11pq)); 
-        beta = col_invA11pq(a_c);
+        v1 = obj.solveU(u(1:nrank) - v2*u12); 
+        max_col = [v1 ; v2];
+        [~,a_c] = max(abs(max_col)); 
+        beta = full(max_col(a_c));
 
     end
     
@@ -1443,7 +1609,7 @@ classdef lusol_obj < handle
     function [err] = facerror(obj)
         nrank = obj.stats.nrank;
         x = randn(nrank, 1); 
-        y = obj.mulL11(obj.mulU11(x));
+        y = obj.mulL(obj.mulU(x));
         
         A11 = obj.A(1:nrank,1:nrank);
         err = max(abs(A11*x - y ));
@@ -1451,17 +1617,17 @@ classdef lusol_obj < handle
     
     function [err] = facerror12(obj)
         nrank = obj.stats.nrank;
-        [~,n] = obj.size;
+        [~,n] = size(obj.A);
         x = randn(n-nrank,1);
-        y1 = obj.mulL11(obj.mulU12(x));
+        y1 = obj.mulL(obj.U12*x);
         err = max(abs(y1 - obj.A(1:nrank,nrank+1:end)*x));        
     end
  
     function [err] = facerror21(obj)
         nrank = obj.stats.nrank;
-        [~,n] = obj.size;
+        [~,n] = size(obj.A);
         x = randn(nrank,1);
-        y = obj.mulL21(obj.mulU11(x)); 
+        y = obj.L21*(obj.mulU(x)); 
         err = max(abs(y - obj.A(nrank+1:end,1:nrank)*x));
     end
     

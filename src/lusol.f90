@@ -55,7 +55,7 @@ module lusol
 
   implicit none
   private
-  public    :: lu1fac, lu6sol, lu8rpc, lu1or2
+  public    :: lu1fac, lu6sol, lu8rpc1, lu1or2
   private   :: jdamax
   intrinsic :: abs, int, max, min, real
 
@@ -5763,10 +5763,9 @@ Colj:     do lc = lc1, lc2
                              k, kbegin, kstart, kstop,            &
                              l, ldiag, lenv, lenw, lfirst, limit, &
                              lv, lv1, lv2, lv3, lw, lw1, lw2,     &
-                             minfre, nfree, nrank
+                             minfre, nfree
     real(rp)              :: amult, Ltol, Uspace, small, vj, wj
 
-    nrank  = luparm(15)
     Ltol   = parmlu(2)
     small  = parmlu(3)
     Uspace = parmlu(6)
@@ -5833,7 +5832,6 @@ Colj:     do lc = lc1, lc2
        if (lenv      ==   0   ) go to 150
        if (indr(lv1) /= jfirst) go to 150
        vj     = a(lv1)
-       if (klast > nrank)               go to 200
        if (         swappd          ) go to 200
        if (Ltol * abs(wj) <  abs(vj)) go to 200
        if (Ltol * abs(vj) <  abs(wj)) go to 150
@@ -6252,7 +6250,7 @@ Colj:     do lc = lc1, lc2
   ! 20 Jan 2016: Current version of lusol8a.f90.
   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-  subroutine lu8rpc( mode1, mode2, m, n, jrep, v, w, &
+  subroutine lu8rpc1( mode1, mode2, m, n, jrep, v, w, &
                      lena, luparm, parmlu,           &
                      a, indc, indr, p, q,            &
                      lenc, lenr, locc, locr,         &
@@ -6584,7 +6582,7 @@ Colj:     do lc = lc1, lc2
 1800 format(/ ' lu8rpc  error...  jrep  is out of range.', &
               '    m =', i8, '    n =', i8, '    jrep =', i8)
 
-  end subroutine lu8rpc
+  end subroutine lu8rpc1
 
   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
