@@ -1,0 +1,12 @@
+MEX {
+	global:
+		mexFunction;
+		mexfilerequiredapiversion;
+		emlrtMexFcnProperties;
+		carrqr;
+		carrqr_initialize;
+		carrqr_terminate;
+		carrqr_atexit;
+	local:
+		*;
+};

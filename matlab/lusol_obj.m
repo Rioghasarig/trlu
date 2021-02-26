@@ -770,12 +770,22 @@ classdef lusol_obj < handle
       obj.L21 = L(nrank+1:end,1:nrank); 
       U = obj.getU();
       obj.U12 = U(1:nrank,nrank+1:end);
+
+      U11 = U(1:nrank,1:nrank); 
+      [uj,~,uv] = find(U11'); 
+      lenu = length(uv); 
       
-      nzmax = 100000;
+      L11 = L(1:nrank,1:nrank);
+      obj.L11 = L11;
+      L11 = L11 - speye(nrank);
+      [i,j,v] = find(L11); 
+      lenl = length(v);
+      
+      nzmax = 500000;
       a = zeros(nzmax,1);
       indc = zeros(nzmax,1);
       indr = zeros(nzmax,1); 
-      lena = length(a);   
+      lena = nzmax;   
       luparm = obj.luparm_ptr.Value;
       
       % Resize factorization
@@ -784,12 +794,13 @@ classdef lusol_obj < handle
       p = 1:nrank;
       q = 1:nrank;
       
-      %Set U data
-      U11 = U(1:nrank,1:nrank); 
-      [uj,~,uv] = find(U11'); 
-      lenu = length(uv); 
+      %Extract L and U
 
       
+      if(lena <= lenu + lenl)
+          error('lusol:lusol_obj', "Insufficient storage");
+      end
+      % Set U data
       a(1:lenu) = uv;
       indr(1:lenu) = uj;          
       lenr = full(sum(U11 ~= 0,2))';
@@ -801,12 +812,7 @@ classdef lusol_obj < handle
       luparm(25) = lenu; % set lrow to lenU
       %Set L data
 
-      L11 = L(1:nrank,1:nrank);
-      obj.L11 = L11;
-      L11 = L11 - eye(nrank);
-      [i,j,v] = find(L11); 
-      lenl = length(v);
-      
+
 
       a(lena-lenl+1:end) = flip(-v);
       indc(lena-lenl+1:end) = flip(i);
@@ -1355,10 +1361,12 @@ classdef lusol_obj < handle
             error('lusol:swapRows', 'Insufficient Storage');
         end        
        
-        c = v_ptr.value;
+        c = sparse(v_ptr.value);
         ei = ((1:m-nrank) == i2)'; 
-        d = -obj.L21*c - ei;
-        w2 = r2(nrank+1:end) - r1(nrank+1:end);
+        d = sparse(-obj.L21*c - ei);
+        
+        % Apply rank one update two U12
+        w2 = sparse(r2(nrank+1:end) - r1(nrank+1:end));
         obj.U12 = obj.U12 + c*w2'; 
         
         lenlv = obj.lenlv_ptr.value; 
@@ -1366,7 +1374,7 @@ classdef lusol_obj < handle
         lj = double(obj.lj_ptr.value);
         lv = obj.lv_ptr.value;
         lvtotal = sum(lenlv);
-        lr = lvtotal;
+        lr = lenlv;
         for i=1:lvtotal
             obj.L11(:,lj(i)) = ...
                 obj.L11(:,lj(i)) - lv(i)*obj.L11(:,li(i));
@@ -1444,7 +1452,7 @@ classdef lusol_obj < handle
         lv = obj.lv_ptr.value;
         
         lvtotal = sum(lenlv(1:2));  
-        lc = lvtotal;
+        lc = lenlv;
         lenLf = obj.stats.lenL;
         if lenLf - lenLi ~= lvtotal
             error('lusol:swapCols', 'Invalid L update');
@@ -1465,36 +1473,34 @@ classdef lusol_obj < handle
 
        
         ej = ((1:nrank) == j1)';
-        s = c2(nrank+1:end) - obj.L21*obj.mulU(ej); 
+        s = sparse(c2(nrank+1:end) - obj.L21*obj.mulU(ej)); 
     end
     
     function [lr, lc] = swapFac(obj, a_r, a_c, s_r, s_c)
         [nrank, ~] = obj.size;
         m = size(obj.A,1); 
-        lr = 0;
-        lc = 0;
+        lr = [0,0,0];
+        lc = [0,0,0];
+
         if a_c <= nrank
             [inform, s, ej,lc] = obj.swapCols(a_c, s_c);
-
-
         end
 
         if a_r <= nrank
             [inform,d, w1, lr] = obj.swapRows(a_r, s_r);
         end
-
-        
+               
         if(obj.stats.nrank ~= nrank || inform == 2)
            error('lusol:swapFac', 'Singular U11');
         end
         
         if a_c <= nrank
-            l = obj.solveUt(ej);
+            l = sparse(obj.solveUt(ej));
             obj.L21 = obj.L21 + s*l'; 
         end
         
         if a_r <= nrank
-            l2 = obj.solveUt(w1); 
+            l2 = sparse(obj.solveUt(w1)); 
             obj.L21 = obj.L21 + d*l2';
         end
         % Find the correct values of U12 and L21
@@ -1591,20 +1597,12 @@ classdef lusol_obj < handle
     end 
     
     function [err] = L2error(obj)
-       [~,n] = obj.size;
-       err = 0;
-       ident = speye(n);
-       block_size = 10000;
-       for j = 1:block_size:n 
-           block = full(ident(:,j:min(j+block_size-1,n)));
-           E = obj.A*block - obj.mulA(block);
-           if any(isnan(E))
-               e = MException('L2error', 'nan found in E');
-               throw(e);
-           end
-           err = err + norm(E, 'fro')^2; 
-       end
-       err = sqrt(err)/norm(obj.A,'fro');
+        L = [obj.L11; obj.L21];
+        U = [obj.getU(), obj.U12];
+        %M = (L\ obj.A) / U;
+        %E = obj.A - L*M*U;
+        E = obj.A - L*U;
+        err = norm(E,'fro')/norm(obj.A,'fro');
     end
     function [err] = facerror(obj)
         nrank = obj.stats.nrank;

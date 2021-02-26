@@ -32,7 +32,7 @@ ifneq ($(DARWIN),)
 else
   # Fortran 90 compiler
   F90C := gfortran
-  F90FLAGS :=  -m64 -fPIC -Jsrc -g $(FOPT)
+  F90FLAGS := -m64 -fPIC -Jsrc -g $(FOPT)
   # Fortran 77 compiler
   F77C := gfortran
   F77FLAGS := -m64 -fPIC -fdefault-integer-8 -g $(FOPT)
@@ -75,10 +75,10 @@ else
   LIB_SUFFIX := so
   EXPORT_SYMBOLS := src/symbols.map
   LDFLAGS := -m64 -shared
-  LDFLAGS += -Wl,--version-script,$(EXPORT_SYMBOLS)
+  #LDFLAGS += -Wl,--version-script,$(EXPORT_SYMBOLS)
   # libraries
   LDLIBS :=
-  LDLIBS += -Wl,-rpath,/usr/lib -lgfortran
+  LDLIBS += -Wl,-rpath,/usr/lib -lgfortran #-llapack -lblas
 endif
 
 # list of files required by matlab
@@ -116,7 +116,7 @@ F77_OBJ := $(patsubst %.f,%.o,$(filter %.f,$(F77_FILES)))
 # list of F90 code files
 F90_FILES := \
   src/lusol_precision.f90 \
-  src/lusol.f90
+  src/lusol.f90 src/carrqr.f90 src/updateA.f90 src/paneling.f90
 
 F90_OBJ := $(patsubst %.f90,%.o,$(filter %.f90,$(F90_FILES)))
 F90_MOD := $(patsubst %.f90,%.mod,$(filter %.f90,$(F90_FILES)))
@@ -125,7 +125,6 @@ F90_MOD := $(patsubst %.f90,%.mod,$(filter %.f90,$(F90_FILES)))
 OBJ := src/clusol.o
 OBJ += $(F90_OBJ)
 OBJ += $(F77_OBJ)
-
 # set the default goal
 .DEFAULT_GOAL := all
 
@@ -141,6 +140,7 @@ $(F77_OBJ) : %.o : %.f
 $(F90_OBJ) : %.o : %.f90
 	$(F90C) $(F90FLAGS) -c $< -o $@
 
+	
 # dependencies for F90 module files
 $(F90_MOD) : %.mod : %.o
 
@@ -160,13 +160,13 @@ src/clusol.o: src/clusol.c src/clusol.h
 
 # Link the dynamic library
 src/libclusol.$(LIB_SUFFIX): $(OBJ) $(EXPORT_SYMBOLS)
-	$(LD) -g $(LDFLAGS) $(OBJ) -o  $@ $(LDLIBS)
+	$(LD) -g $(LDFLAGS) $(OBJ)  -o $@ $(LDLIBS)
 
 # file copying to matlab directory
 $(MATLAB_FILES): src/libclusol.$(LIB_SUFFIX) src/clusol.h
 	cp src/libclusol.$(LIB_SUFFIX) src/clusol.h ./matlab/
 	$(ML) $(MLFLAGS) -r "cd matlab; lusol_build; exit"
-
+    
 .PHONY: matlab
 matlab: $(MATLAB_FILES)
 

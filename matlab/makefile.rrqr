@@ -1,0 +1,8 @@
+FLAGS := -m64 -g -fPIC -fopenmp
+LINKS := -llapack -lblas
+
+%.o : %.f90
+	ifort -c $(FLAGS) $< -o $@
+
+rrqr.so:  trqrcp.o restrictNuma.o qrpError.o
+	ifort  -shared -m64 -g  trqrcp.o restrictNuma.o qrpError.o -o $@

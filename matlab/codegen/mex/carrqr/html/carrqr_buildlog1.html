@@ -1,0 +1,107 @@
+<html>
+<head>
+<div class="baselog">
+<link rel="stylesheet" href="resources/matlab-report-styles.css" type="text/css" />
+<style type="text/css" media="screen">
+div.treeview { white-space: nowrap; }
+.treeview img { border: 0px; vertical-align: middle; }
+.trigger { cursor: pointer; }
+.branch { display: none; margin-left: 22px; }
+span.lnnolink { cursor: pointer; color: blue; text-decoration: underline; padding: 1 }
+span.lnnonorm { color: grey; padding: 1 }
+span.textnorm { color: black; padding: 1 }
+span.textcmnt { color: green; padding: 1 }
+span.msglink { cursor: pointer; color: blue; text-decoration: underline }
+span.treelink { cursor: pointer; color: blue; text-decoration: underline }
+.error { color: red; }
+.fcflink { cursor: pointer; color: blue; text-decoration: underline }
+div.tooltip { visibility: hidden; position: fixed;
+  background-color: lightyellow; border: 1px solid black; }
+.td-linebottomrt-gray {border-bottom:1px solid #BBB; border-right:1px solid #BBB;background-color:#F0F0F0;}
+.td-linebottomrt-link {border-bottom:1px solid #BBB; border-right:1px solid #BBB;color:Blue;}
+</style>
+</div>
+<title>Code Generation Report For 'carrqr'</title>
+</head>
+<body>
+<div class="report-head">MATLAB Coder Build Log</div><p/>
+<div class="baselog">
+<div class="grayline"></div>
+<table cellpadding="4" cellspacing="1"><tr>
+<td align="left" class="td-linebottomrt-gray" colspan="2">Build Parameters</td>
+</tr>
+<tr><td align="left" valign="top" class="td-linebottomrt">Build directory</td>
+<td align="left" valign="top" class="td-linebottomrt-link"><a href="matlab: cd('/global/home/users/oekenta/trlu/matlab/codegen/mex/carrqr')">/global/home/users/oekenta/trlu/matlab/codegen/mex/carrqr</a></td></tr>
+<tr><td align="left" valign="top" class="td-linebottomrt">Make wrapper</td>
+<td align="left" valign="top" class="td-linebottomrt-link">sh carrqr_mex.sh</td></tr>
+</table>
+<br/>
+<table border="1" cellpadding="4" cellspacing="1" width="100%">
+<tr><td align="left" class="td-linebottomrt-gray">Build Log</td></tr>
+<tr><td valign="top" class="td-script">
+<pre>
+<span class="td-line-number">    1   </span><span class="td-line-normal">/usr/bin/gcc -c -fexceptions -fPIC -fno-omit-frame-pointer -pthread -D_GNU_SOURCE -DMATLAB_MEX_FILE   -O -DNDEBUG    -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/simulink/include" -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/toolbox/shared/simtargets" -I "/global/home/users/oekenta/trlu/matlab/codegen/mex/carrqr" -I "/global/home/users/oekenta/trlu/matlab" -I "./interface" -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/extern/include" -I "." "carrqr_data.c"</span>
+<span class="td-line-number">    2   </span><span class="td-line-normal">/usr/bin/gcc -c -fexceptions -fPIC -fno-omit-frame-pointer -pthread -D_GNU_SOURCE -DMATLAB_MEX_FILE   -O -DNDEBUG    -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/simulink/include" -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/toolbox/shared/simtargets" -I "/global/home/users/oekenta/trlu/matlab/codegen/mex/carrqr" -I "/global/home/users/oekenta/trlu/matlab" -I "./interface" -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/extern/include" -I "." "carrqr_initialize.c"</span>
+<span class="td-line-number">    3   </span><span class="td-line-normal">/usr/bin/gcc -c -fexceptions -fPIC -fno-omit-frame-pointer -pthread -D_GNU_SOURCE -DMATLAB_MEX_FILE   -O -DNDEBUG    -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/simulink/include" -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/toolbox/shared/simtargets" -I "/global/home/users/oekenta/trlu/matlab/codegen/mex/carrqr" -I "/global/home/users/oekenta/trlu/matlab" -I "./interface" -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/extern/include" -I "." "carrqr_terminate.c"</span>
+<span class="td-line-number">    4   </span><span class="td-line-normal">/usr/bin/gcc -c -fexceptions -fPIC -fno-omit-frame-pointer -pthread -D_GNU_SOURCE -DMATLAB_MEX_FILE   -O -DNDEBUG    -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/simulink/include" -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/toolbox/shared/simtargets" -I "/global/home/users/oekenta/trlu/matlab/codegen/mex/carrqr" -I "/global/home/users/oekenta/trlu/matlab" -I "./interface" -I "/global/software/sl-7.x86_64/modules/tools/matlab/r2017b/extern/include" -I "." "carrqr.c"</span>
+<span class="td-line-number">    5   </span><span class="td-line-normal">carrqr.c: In function 'carrqr':</span>
+<span class="td-line-number">    6   </span><span class="td-line-warning">carrqr.c:41:3: warning: passing argument 1 of 'carrqr' from incompatible pointer type [enabled by default]</span>
+<span class="td-line-number">    7   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">    8   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">    9   </span><span class="td-line-normal">carrqr.c:20:6: note: expected 'const struct emlrtStack *' but argument is of type 'int32_T *'</span>
+<span class="td-line-number">   10   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   11   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   12   </span><span class="td-line-warning">carrqr.c:41:3: warning: passing argument 2 of 'carrqr' makes integer from pointer without a cast [enabled by default]</span>
+<span class="td-line-number">   13   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">   14   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">   15   </span><span class="td-line-normal">carrqr.c:20:6: note: expected 'int32_T' but argument is of type 'int32_T *'</span>
+<span class="td-line-number">   16   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   17   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   18   </span><span class="td-line-warning">carrqr.c:41:3: warning: passing argument 3 of 'carrqr' makes integer from pointer without a cast [enabled by default]</span>
+<span class="td-line-number">   19   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">   20   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">   21   </span><span class="td-line-normal">carrqr.c:20:6: note: expected 'int32_T' but argument is of type 'int32_T *'</span>
+<span class="td-line-number">   22   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   23   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   24   </span><span class="td-line-warning">carrqr.c:41:3: warning: passing argument 4 of 'carrqr' makes integer from pointer without a cast [enabled by default]</span>
+<span class="td-line-number">   25   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">   26   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">   27   </span><span class="td-line-normal">carrqr.c:20:6: note: expected 'int32_T' but argument is of type 'real_T *'</span>
+<span class="td-line-number">   28   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   29   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   30   </span><span class="td-line-warning">carrqr.c:41:3: warning: passing argument 5 of 'carrqr' from incompatible pointer type [enabled by default]</span>
+<span class="td-line-number">   31   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">   32   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">   33   </span><span class="td-line-normal">carrqr.c:20:6: note: expected 'const real_T *' but argument is of type 'int32_T *'</span>
+<span class="td-line-number">   34   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   35   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   36   </span><span class="td-line-warning">carrqr.c:41:3: warning: passing argument 6 of 'carrqr' makes integer from pointer without a cast [enabled by default]</span>
+<span class="td-line-number">   37   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">   38   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">   39   </span><span class="td-line-normal">carrqr.c:20:6: note: expected 'int32_T' but argument is of type 'int32_T *'</span>
+<span class="td-line-number">   40   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   41   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   42   </span><span class="td-line-warning">carrqr.c:41:3: warning: passing argument 7 of 'carrqr' from incompatible pointer type [enabled by default]</span>
+<span class="td-line-number">   43   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">   44   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">   45   </span><span class="td-line-normal">carrqr.c:20:6: note: expected 'const int32_T *' but argument is of type 'real_T *'</span>
+<span class="td-line-number">   46   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   47   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   48   </span><span class="td-line-warning">carrqr.c:41:3: warning: passing argument 8 of 'carrqr' from incompatible pointer type [enabled by default]</span>
+<span class="td-line-number">   49   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">   50   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">   51   </span><span class="td-line-normal">carrqr.c:20:6: note: expected 'const real_T *' but argument is of type 'int32_T *'</span>
+<span class="td-line-number">   52   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   53   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   54   </span><span class="td-line-error">carrqr.c:41:3: error: too few arguments to function 'carrqr'</span>
+<span class="td-line-number">   55   </span><span class="td-line-normal">   carrqr(&b_m, &b_n, &b_blkMax, b_A, &b_lda, b_jpvt, b_tau, &b_info);</span>
+<span class="td-line-number">   56   </span><span class="td-line-normal">   ^</span>
+<span class="td-line-number">   57   </span><span class="td-line-normal">carrqr.c:20:6: note: declared here</span>
+<span class="td-line-number">   58   </span><span class="td-line-normal"> void carrqr(const emlrtStack *sp, int32_T m, int32_T n, int32_T blkMax, const</span>
+<span class="td-line-number">   59   </span><span class="td-line-normal">      ^</span>
+<span class="td-line-number">   60   </span><span class="td-line-normal">gmake: *** [carrqr.o] Error 1</span>
+</pre>
+</td></tr></table>
+</div>
+</body>
+</html>

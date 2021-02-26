@@ -1,5 +1,5 @@
 %warning('off','all');
-myDir = './small_mats';
+myDir = './snap_mats';
 matFiles = dir(fullfile(myDir, '*.mat'));
 nmat = length(matFiles);
 
@@ -24,8 +24,8 @@ alphaError = zeros(nmat,swaps+1);
 betaError = zeros(nmat,swaps+1); 
 lmaxrs = zeros(nmat,swaps);
 lmaxcs = zeros(nmat,swaps); 
-f = 2;
-for k = 6:6
+f = 5;
+for k = 9:9
     baseFileName = matFiles(k).name;
     nameLen = min(10, length(baseFileName));
     matname(k) = baseFileName(1:nameLen);
@@ -35,8 +35,8 @@ for k = 6:6
     load(fullFileName);
     A = Problem.A; 
     [m, n] = size(A);
-    nrank = round(m/10);
-
+    %nrank = round(m/10);
+    nrank = 10000;
 
     matsize(k) = m;
     matnnz(k) = nnz(A); 
@@ -67,8 +67,9 @@ for k = 6:6
         fprintf('Error2: %.15f\n', enorm2);
         fprintf('Error3: %.15f\n', enorm3); 
     catch e
-        fprintf('FACTORIATION FAILED: %s\n', e.message);
-        continue
+        fprintf('FACTORIATION FAILED! (%s:%d) \n %s\n', ...
+            e.stack(1).name, e.stack(1).line, e.message);
+
     end
     fprintf('Factorization Time: %.5f\n', factime(k));
 
@@ -91,7 +92,8 @@ for k = 6:6
 %             fprintf('beta: %d, %d\n', beta, betaT);
 %             
 %             alphaError(k,i) = abs(abs(alphaT)/abs(alpha));
-%             betaError(k,i) = abs(abs(betaT)/abs(beta));             
+%             betaError(k,i) = abs(abs(betaT)/abs(beta));  
+            fprintf('alpha*beta: %d\n', alpha*beta);
             if abs(alpha*beta) < f
                break
             end            
@@ -104,8 +106,9 @@ for k = 6:6
             nswaps(k) = nswaps(k) + 1; 
         end
     catch e
-        fprintf('Error during swaps: %s - %s\n', e.identifier, e.message);
-        continue
+        fprintf('Error during swaps: %s - %s - %s:  %s \n', ...
+            e.identifier, e.stack(1).name, e.stack(1).line, e.message );
+        throw(e);
     end
     
     try

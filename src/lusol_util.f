@@ -3871,7 +3871,7 @@
       end ! subroutine lu1slk
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+! WARNING: Doesn't work dcopy disabled
       subroutine lu1ful( m     , n    , lena , lenD , lu1 , TPP,
      &                   mleft , nleft, nrank, nrowu,
      &                   lenL  , lenU , nsing,
@@ -3949,7 +3949,8 @@
       ! In the process, apply the row permutation to ip.
       ! lkk points to the diagonal of U.
       !-----------------------------------------------------------------
-      call dcopy ( lenD, d, 1, a, 1 )
+      ! -- Trying To compile without dcopay
+      !call dcopy ( lenD, d, 1, a, 1 )
 
       ldiagU = lena   - n
       lkk    = 1
@@ -4027,7 +4028,7 @@
       end ! subroutine lu1ful
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+! WARNING: Function doesn't work. daxpy,idamax, dscal  disabled
       subroutine lu1DPP( a, lda, m, n, small, nsing,
      &                   ipvt, iq )
 
@@ -4113,7 +4114,7 @@
 
       ! Find l, the pivot row.
 
-      l       = idamax( lencol, a(k,k), 1 ) + k - 1
+      !l       = idamax( lencol, a(k,k), 1 ) + k - 1
       ipvt(k) = l
 
       if (abs( a(l,k) ) .le. small) then
@@ -4157,7 +4158,7 @@
             ! Do row elimination with column indexing.
             !===========================================================
             t = - one / a(k,k)
-            call dscal ( m-k, t, a(kp1,k), 1 )
+            !call dscal ( m-k, t, a(kp1,k), 1 )
 
             do j = kp1, last
                t    = a(l,j)
@@ -4165,7 +4166,7 @@
                   a(l,j) = a(k,j)
                   a(k,j) = t
                end if
-               call daxpy ( m-k, t, a(kp1,k), 1, a(kp1,j), 1 )
+               !call daxpy ( m-k, t, a(kp1,k), 1, a(kp1,j), 1 )
             end do
 
             k = k + 1
@@ -4184,7 +4185,7 @@
       end ! subroutine lu1DPP
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+! WARNING: Function doesn't work. daxpy, dscal, idamax  disabled
       subroutine lu1DCP( a, lda, m, n, small, nsing,
      &                   ipvt, iq )
 
@@ -4275,8 +4276,8 @@
          jlast  = last
 
          do j = k, jlast
-   10       l      = idamax( lencol, a(k,j), 1 ) + k - 1
-            ajmax  = abs( a(l,j) )
+!   10       l      = idamax( lencol, a(k,j), 1 ) + k - 1
+   10       ajmax  = abs( a(l,j) )
 
             if (ajmax .le. small) then
                !========================================================
@@ -4352,7 +4353,7 @@
             ! Do row elimination with column indexing.
             !===========================================================
             t      = - one / t
-            call dscal ( m-k, t, a(kp1,k), 1 )
+            !call dscal ( m-k, t, a(kp1,k), 1 )
 
             do j = kp1, last
                t         = a(imax,j)
@@ -4360,7 +4361,7 @@
                   a(imax,j) = a(k,j)
                   a(k,j)    = t
                end if
-               call daxpy ( m-k, t, a(kp1,k), 1, a(kp1,j), 1 )
+               !call daxpy ( m-k, t, a(kp1,k), 1, a(kp1,j), 1 )
             end do
 
          else

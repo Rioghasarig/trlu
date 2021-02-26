@@ -1,0 +1,23 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<title>RTW Report - ccarrqr.c</title>
+<script language="JavaScript" type="text/javascript" src="rtwreport_utils.js"></script>
+<script src="resources/eml_report_loadable_data.js"></script>
+</head>
+<body bgcolor="#eeeeee" onload="try {if (top) { if (top.rtwFileOnLoad) top.rtwFileOnLoad(window.document); else local_onload();}} catch(err) {};">
+<p>
+<table border="0" cellspacing="0" cellpadding="6" width="100%%" height="100%%"><tr><td width="100%%" valign="top" bgcolor="#ffffff">
+<h4>File: <a href="../../../../ccarrqr.c" target="rtwreport_document_frame" id="linkToText_plain">ccarrqr.c</a></h4>
+<pre id="RTWcode">
+<a name="1"><font color="#888888 "><i>    1   </i></font></a><font color="#992211">#</font><font color="#992211"><b>include</b></font> <font color="#992211">&quot;ccarrqr.h&quot;</font>
+<a name="2"><font color="#888888 "><i>    2   </i></font></a>
+<a name="3"><font color="#888888 "><i>    3   </i></font></a><font color="#112266"><b>void</b></font> <a name="fcn_ccarrqr">ccarrqr</a>(<font color="#112266"><b>int</b></font> m, <font color="#112266"><b>int</b></font> n, <font color="#112266"><b>int</b></font> blkMax, <font color="#112266"><b>double</b></font>* A, <font color="#112266"><b>int</b></font> lda, <font color="#112266"><b>int</b></font>* jpvt, <font color="#112266"><b>double</b></font>* tau, <font color="#112266"><b>int</b></font> info)
+<a name="4"><font color="#888888 "><i>    4   </i></font></a><b>{</b>
+<a name="5"><font color="#888888 "><i>    5   </i></font></a>    carrqr_(&amp;m,&amp;n,&amp;blkMax,A,&amp;lda,jpvt, tau,&amp;info);
+<a name="6"><font color="#888888 "><i>    6   </i></font></a><b>}</b>
+<a name="7"><font color="#888888 "><i>    7   </i></font></a></pre>
+</td></tr></table>
+</p>
+</body>
+</html>

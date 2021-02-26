@@ -26,6 +26,7 @@ nswaps = 0;
 for i = 1:swaps
     fprintf('Swap: %d\n', i); 
     [alpha, s_r, s_c] = mylu1.maxS(); 
+    
     [beta, a_r, a_c] = mylu1.maxA11inv(alpha,s_r, s_c);
     
     fprintf('alpha*beta: %.15f\n', abs(alpha*beta));
